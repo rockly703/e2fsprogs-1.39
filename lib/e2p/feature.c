@@ -92,7 +92,7 @@ int e2p_string2feature(char *string, int *compat_type, unsigned int *mask)
 	struct feature  *f;
 	char		*eptr;
 	int		num;
-
+	//忽略大小写比较字符串
 	for (f = feature_list; f->string; f++) {
 		if (!strcasecmp(string, f->string)) {
 			*compat_type = f->compat;
@@ -103,6 +103,7 @@ int e2p_string2feature(char *string, int *compat_type, unsigned int *mask)
 	if (strncasecmp(string, "FEATURE_", 8))
 		return 1;
 
+	//支持FEATURE_c0这种写法,其中0对应于EXT2_FEATURE_COMPAT_DIR_PREALLOC
 	switch (string[8]) {
 	case 'c':
 	case 'C':
@@ -149,6 +150,7 @@ static char *skip_over_word(char *cp)
  * if set, allows the application to limit what features the user is
  * allowed to set or clear using this function.
  */
+ //compat_array实际上是有3个元素的u32数组
 int e2p_edit_feature(const char *str, __u32 *compat_array, __u32 *ok_array)
 {
 	char	*cp, *buf, *next;
@@ -160,39 +162,54 @@ int e2p_edit_feature(const char *str, __u32 *compat_array, __u32 *ok_array)
 	if (!buf)
 		return 1;
 	strcpy(buf, str);
+	//将space和','为分隔符,解析cp
 	for (cp = buf; cp && *cp; cp = next ? next+1 : 0) {
 		neg = 0;
 		cp = skip_over_blanks(cp);
 		next = skip_over_word(cp);
 		
 		if (*next == 0)
+			//如果*next == NULL,也就是说在cp中没有找到空格/','等
 			next = 0;
 		else
+			//如果*next是空格/','等
 			*next = 0;
 
 		if ((strcasecmp(cp, "none") == 0) ||
 		    (strcasecmp(cp, "clear") == 0)) {
+		    //清除兼容特性
 			compat_array[0] = 0;
+		    //清除不兼容特性
 			compat_array[1] = 0;
+			//清除不兼容特性
 			compat_array[2] = 0;
 			continue;
 		}
 
+		//支持-feature_r0,+feature_c1这种参数形式
 		switch (*cp) {
 		case '-':
 		case '^':
 			neg++;
 		case '+':
+			//cp指向-/^/+后的字符
 			cp++;
 			break;
 		}
+		/*
+		 * cp是包含特定的字符串,compat_type中包含了特性(兼容/不兼容/只读),
+		 * mask中包含了这些特性(兼容/不兼容/只读)中的具体特性
+		 */
 		if (e2p_string2feature(cp, &compat_type, &mask))
 			return 1;
+		//如果命令行中传入的特性不在ok_array中,就返回错误,说明本程序不支持
 		if (ok_array && !(ok_array[compat_type] & mask))
 			return 1;
 		if (neg)
+			//清除mask代表的特性
 			compat_array[compat_type] &= ~mask;
 		else
+			//置位mask代表的特性
 			compat_array[compat_type] |= mask;
 	}
 	return 0;

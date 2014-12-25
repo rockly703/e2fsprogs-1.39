@@ -76,6 +76,7 @@ void proceed_question(void)
 		exit(1);
 }
 
+//对即将进行分区的文件进行检查
 void check_plausibility(const char *device)
 {
 	int val;
@@ -152,8 +153,10 @@ void check_mount(const char *device, int force, const char *type)
 			device);
 		return;
 	}
+	//如果device已经被挂载上了
 	if (mount_flags & EXT2_MF_MOUNTED) {
 		fprintf(stderr, _("%s is mounted; "), device);
+		//如果强制执行mkfs
 		if (force) {
 			fputs(_("mke2fs forced anyway.  Hope /etc/mtab is "
 				"incorrect.\n"), stderr);
@@ -161,6 +164,7 @@ void check_mount(const char *device, int force, const char *type)
 		}
 	abort_mke2fs:
 		fprintf(stderr, _("will not make a %s here!\n"), type);
+		//直接退出mkfs
 		exit(1);
 	}
 	if (mount_flags & EXT2_MF_BUSY) {

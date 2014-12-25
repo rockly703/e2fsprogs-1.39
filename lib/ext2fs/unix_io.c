@@ -399,6 +399,7 @@ static errcode_t unix_open(const char *name, int flags, io_channel *channel)
 		goto cleanup;
 
 	strcpy(io->name, name);
+	//io->private_data->dev下保存了被打开块设备的fd
 	io->private_data = data;
 	io->block_size = 1024;
 	io->read_error = 0;
@@ -414,6 +415,7 @@ static errcode_t unix_open(const char *name, int flags, io_channel *channel)
 	open_flags = (flags & IO_FLAG_RW) ? O_RDWR : O_RDONLY;
 	if (flags & IO_FLAG_EXCLUSIVE)
 		open_flags |= O_EXCL;
+	//打开块设备 
 #ifdef HAVE_OPEN64
 	data->dev = open64(io->name, open_flags);
 #else

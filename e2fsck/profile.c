@@ -85,15 +85,19 @@ typedef long prf_magic_t;
  * This is the structure which stores the profile information for a
  * particular configuration file.
  */
+ //每一个配置文件都有一个 struct __prf_file_t
 struct _prf_file_t {
 	prf_magic_t	magic;
+	//配置文件名
 	char		*filespec;
 #ifdef STAT_ONCE_PER_SECOND
 	time_t		last_stat;
 #endif
 	time_t		timestamp; /* time tree was last updated from file */
 	int		flags;	/* r/w, dirty */
+	//被update的次数
 	int		upd_serial; /* incremented when data changes */
+	//配置文件中的tree root
 	struct profile_node *root;
 	struct _prf_file_t *next;
 };
@@ -113,6 +117,7 @@ typedef struct _prf_file_t *prf_file_t;
  */
 struct _profile_t {
 	prf_magic_t	magic;
+	//所有配置文件的链表头
 	prf_file_t	first_file;
 };
 
@@ -133,6 +138,7 @@ struct _profile_t {
 
 struct profile_node {
 	errcode_t	magic;
+	//配置文件中node的名称
 	char *name;
 	char *value;
 	int group_level;
@@ -150,9 +156,11 @@ struct profile_node {
 /* profile parser declarations */
 struct parse_state {
 	int	state;
+	//记录section的层数
 	int	group_level;
 	int	line_num;
 	struct profile_node *root_section;
+	//记录当前正在处理的section
 	struct profile_node *current_section;
 };
 
@@ -304,13 +312,19 @@ profile_init(const char **files, profile_t *ret_profile)
 		return ENOMEM;
 	memset(profile, 0, sizeof(struct _profile_t));
 	profile->magic = PROF_MAGIC_PROFILE;
+	//files数组中的文件打开后会连接到以first_file为头的链表中
 	last = &profile->first_file;
 
         /* if the filenames list is not specified return an empty profile */
         if ( files ) {
 	    for (fs = files; !PROFILE_LAST_FILESPEC(*fs); fs++) {
+			/*
+			 * 依次读取file数组中的文件/目录,默认情况下file数组中只保存文件,
+			 * get_dirlist只能读目录,所以会返回一个错误值
+			 */
 		retval = get_dirlist(*fs, &array);
 		if (retval == 0) {
+			//默认情况下不会走进来
 			for (cpp = array; (cp = *cpp); cpp++) {
 				retval = profile_open_file(cp, &new_file);
 				if (retval == EACCES)
@@ -323,6 +337,7 @@ profile_init(const char **files, profile_t *ret_profile)
 		} else if (retval != ENOTDIR)
 			goto errout;
 
+		//*files不是目录,所以会走到下面 
 		retval = profile_open_file(*fs, &new_file);
 		/* if this file is missing, skip to the next */
 		if (retval == ENOENT || retval == EACCES) {
@@ -331,6 +346,7 @@ profile_init(const char **files, profile_t *ret_profile)
 		if (retval)
 			goto errout;
 		*last = new_file;
+		//所有文件通过链表形式组织起来
 		last = &new_file->next;
 	    }
 	    /*
@@ -389,10 +405,12 @@ errcode_t profile_open_file(const char * filespec,
 
 	len = strlen(filespec)+1;
 	if (filespec[0] == '~' && filespec[1] == '/') {
+		//通过环境变量获取家目录路径
 		home_env = getenv("HOME");
 #ifdef HAVE_PWD_H
 		if (home_env == NULL) {
-#ifdef HAVE_GETWUID_R
+			//如果环境变量中家目录路径为NULL
+#ifdef HAVE_GETWUID_R 
 		    struct passwd *pw, pwx;
 		    uid_t uid;
 		    char pwbuf[BUFSIZ];
@@ -405,18 +423,22 @@ errcode_t profile_open_file(const char * filespec,
 		    struct passwd *pw;
 
 		    pw = getpwuid(getuid());
+			//通过解析/etc/passwd获取家目录路径
 		    home_env = pw->pw_dir;
 #endif
 		}
 #endif
 		if (home_env)
+			//如果家目录路径获取车成功
 			len += strlen(home_env);
 	}
+	//为解析完成的路径名分配空间
 	expanded_filename = malloc(len);
 	if (expanded_filename == 0)
 	    return errno;
 	if (home_env) {
 	    strcpy(expanded_filename, home_env);
+		//将~/xxx/yyy中的~替换成绝对路径
 	    strcat(expanded_filename, filespec+1);
 	} else
 	    memcpy(expanded_filename, filespec, len);
@@ -433,6 +455,7 @@ errcode_t profile_open_file(const char * filespec,
 	return 0;
 }
 
+//重新解析prf->filespec
 errcode_t profile_update_file(prf_file_t prf)
 {
 	errcode_t retval;
@@ -453,6 +476,7 @@ errcode_t profile_update_file(prf_file_t prf)
 	    return 0;
 	}
 #endif
+	//获取配置文件的状态
 	if (stat(prf->filespec, &st)) {
 	    retval = errno;
 	    return retval;
@@ -461,6 +485,7 @@ errcode_t profile_update_file(prf_file_t prf)
 	prf->last_stat = now;
 #endif
 	if (st.st_mtime == prf->timestamp && prf->root != NULL) {
+		//如果配置文件的更新时间和profile的更新时间相同,说明配置文件没有更新
 	    return 0;
 	}
 	if (prf->root) {
@@ -473,11 +498,14 @@ errcode_t profile_update_file(prf_file_t prf)
 	 * memory image is correct.  That is, we won't reread the
 	 * profile file if it changes.
 	 */
+	//通过profile_init调用进来的prf->root为NULL 
 	if (prf->root) {
+		//如果prf->root不为空,表示配置文件的节点树已经建立完毕
 	    return 0;
 	}
 #endif
 	memset(&state, 0, sizeof(struct parse_state));
+	//创建profile的根节点
 	retval = profile_create_node("(root)", 0, &state.root_section);
 	if (retval)
 		return retval;
@@ -489,10 +517,12 @@ errcode_t profile_update_file(prf_file_t prf)
 			retval = ENOENT;
 		return retval;
 	}
+	//准备解析配置文件,upd_serial需要++
 	prf->upd_serial++;
 	while (!feof(f)) {
 		if (fgets(buf, sizeof(buf), f) == NULL)
 			break;
+		//逐行解析
 		retval = parse_line(buf, &state);
 		if (retval) {
 			if (syntax_err_cb)
@@ -532,14 +562,19 @@ profile_syntax_err_cb_t profile_set_syntax_err_cb(profile_syntax_err_cb_t hook)
 	return(old);
 }
 
+//comment,包含有[]
 #define STATE_INIT_COMMENT	0
+//一般的行
 #define STATE_STD_LINE		1
+//获取左花括号
 #define STATE_GET_OBRACE	2
 
 static char *skip_over_blanks(char *cp)
 {
 	while (*cp && isspace((int) (*cp)))
+		//略过空格符
 		cp++;
+	//返回非空格符
 	return cp;
 }
 
@@ -548,9 +583,11 @@ static int end_or_comment(char ch)
 	return (ch == 0 || ch == '#' || ch == ';');
 }
 
+//找到第一个空格符或者comment
 static char *skip_over_nonblanks(char *cp)
 {
 	while (!end_or_comment(*cp) && !isspace(*cp))
+		//即不是comment也不是空格符
 		cp++;
 	return cp;
 }
@@ -559,6 +596,7 @@ static void strip_line(char *line)
 {
 	char *p = line + strlen(line);
 	while (p > line && (p[-1] == '\n' || p[-1] == '\r'))
+		//将行尾的换行符去掉
 	    *p-- = 0;
 }
 
@@ -570,6 +608,7 @@ static void parse_quoted_string(char *str)
 
 	for (to = from = str; *from && *from != '"'; to++, from++) {
 		if (*from == '\\') {
+			//str中出现反斜杠,将反斜杠的字符替换成转义字符.
 			from++;
 			switch (*from) {
 			case 'n':
@@ -586,6 +625,10 @@ static void parse_quoted_string(char *str)
 			}
 			continue;
 		}
+		/*
+		 * 如果str中出现了"\n"/"\t"/"\b"的字符串,将这些字符串转成转义字符.
+		 * 
+		 */
 		*to = *from;
 	}
 	*to = '\0';
@@ -599,49 +642,65 @@ static errcode_t parse_line(char *line, struct parse_state *state)
 	struct profile_node	*node;
 	int do_subsection = 0;
 	void *iter = 0;
-	
+
+	//记录当前正在解析的行数,从1开始
 	state->line_num++;
 	if (state->state == STATE_GET_OBRACE) {
+		//本次解析需要获取左花括号
 		cp = skip_over_blanks(line);
 		if (*cp != '{')
 			return PROF_MISSING_OBRACE;
+		//如果cp == '{'
 		state->state = STATE_STD_LINE;
 		return 0;
 	}
 	if (state->state == STATE_INIT_COMMENT) {
+		//本次解析comment,也就是"[]"标签中的内容
 		if (line[0] != '[')
 			return 0;
+		//stanzas都是以'['开头的,
 		state->state = STATE_STD_LINE;
 	}
 
 	if (*line == 0)
+		//如果是空行,没有结束符,也没有换行符
 		return 0;
+	//将行尾的换行符去掉
 	strip_line(line);
+	//去掉行首的空格符
 	cp = skip_over_blanks(line);
 	ch = *cp;
+	//';','#'是注释符,如果出现注释符和行尾,直接返回 
 	if (end_or_comment(ch))
 		return 0;
 	if (ch == '[') {
 		if (state->group_level > 0)
+			//[]标签必须处于节点的顶部,也就是group_level = 0；
 			return PROF_SECTION_NOTOP;
 		cp++;
+		//跳过空格符
 		cp = skip_over_blanks(cp);
 		p = strchr(cp, ']');
 		if (p == NULL)
+			//找不到']'
 			return PROF_SECTION_SYNTAX;
 		if (*cp == '"') {
 			cp++;
 			parse_quoted_string(cp);
 		} else {
+			//将']'转成0
 			*p-- = '\0';
+			//将尾部所有多余空格转成0
 			while (isspace(*p) && (p > cp))
 				*p-- = '\0';
 			if (*cp == 0)
 				return PROF_SECTION_SYNTAX;
 		}
+		//通过root_section去找/etc/mke2fs.conf中[]中的标签
 		retval = profile_find_node(state->root_section, cp, 0, 1, 
 					   &iter, &state->current_section);
 		if (retval == PROF_NO_SECTION) {
+			//如果在node tree中没有找到这个section,就需要添加section
 			retval = profile_add_node(state->root_section,
 						  cp, 0,
 						  &state->current_section);
@@ -663,14 +722,17 @@ static errcode_t parse_line(char *line, struct parse_state *state)
 		 */
 		cp = skip_over_blanks(cp);
 		if (!end_or_comment(*cp))
+			//在[]后只能有注释符';','#',或者空格和'\0',其他任何符合都是错误的
 			return PROF_SECTION_SYNTAX;
 		return 0;
 	}
 	if (ch == '}') {
+		//子section中的relation处理完毕
 		if (state->group_level == 0)
 			return PROF_EXTRA_CBRACE;
 		if (*(cp+1) == '*')
 			state->current_section->final = 1;
+		//回到父section,group_level需要--
 		state->current_section = state->current_section->parent;
 		state->group_level--;
 		return 0;
@@ -683,22 +745,28 @@ static errcode_t parse_line(char *line, struct parse_state *state)
 	if (!cp)
 		return PROF_RELATION_SYNTAX;
 	if (cp == tag)
+		//如果某行以'='开头
 	    return PROF_RELATION_SYNTAX;
+	//将'='换成'\0'
 	*cp = '\0';
 	if (*tag == '"') {
 		tag++;
 		parse_quoted_string(tag);
 	} else {
 		/* Look for whitespace on left-hand side.  */
+		//如果一条relation的格式是"tag = xxx",到这一步就是"tag ",还需要将末尾的空格去掉
 		p = skip_over_nonblanks(tag);
 		if (*p)
+			//将空格符或者comment替换成0
 			*p++ = 0;
+		//在tag后'='之前不能有任何非空格字符 
 		p = skip_over_blanks(p);
 		/* If we have more non-whitespace, it's an error.  */
 		if (*p)
 			return PROF_RELATION_SYNTAX;
 	}
 
+	//找到tag之后的value
 	cp = skip_over_blanks(cp+1);
 	value = cp;
 	ch = value[0];
@@ -706,9 +774,11 @@ static errcode_t parse_line(char *line, struct parse_state *state)
 		value++;
 		parse_quoted_string(value);
 	} else if (end_or_comment(ch)) {
+		//'{'不但可以写在'='后面,也可以在'='下一行
 		do_subsection++;
 		state->state = STATE_GET_OBRACE;
 	} else if (value[0] == '{') {
+		//左花括号后不能接任何非空格字符
 		cp = skip_over_blanks(value+1);
 		ch = *cp;
 		if (end_or_comment(ch))
@@ -716,6 +786,7 @@ static errcode_t parse_line(char *line, struct parse_state *state)
 		else
 			return PROF_RELATION_SYNTAX;
 	} else {
+		//value中不能包含任何非空字符
 		cp = skip_over_nonblanks(value);
 		p = skip_over_blanks(cp);
 		ch = *p;
@@ -727,6 +798,7 @@ static errcode_t parse_line(char *line, struct parse_state *state)
 		p = strchr(tag, '*');
 		if (p)
 			*p = '\0';
+		//给current_section添加一个子section,并且将current_section指向新创建的section
 		retval = profile_add_node(state->current_section,
 					  tag, 0, &state->current_section);
 		if (retval)
@@ -739,6 +811,7 @@ static errcode_t parse_line(char *line, struct parse_state *state)
 	p = strchr(tag, '*');
 	if (p)
 		*p = '\0';
+	//如果不是子section,那么只增加一条relation,并不会改变state->current_section
 	profile_add_node(state->current_section, tag, value, &node);
 	if (p)
 		node->final = 1;
@@ -1001,11 +1074,13 @@ errcode_t profile_create_node(const char *name, const char *value,
 	if (!new)
 		return ENOMEM;
 	memset(new, 0, sizeof(struct profile_node));
+	//为node分配名称
 	new->name = strdup(name);
 	if (new->name == 0) {
 	    profile_free_node(new);
 	    return ENOMEM;
 	}
+	//如果value不为NULL,就给node->name赋值,否则赋不赋值都一样,索性不赋值了
 	if (value) {
 		new->value = strdup(value);
 		if (new->value == 0) {
@@ -1060,6 +1135,7 @@ errcode_t profile_add_node(struct profile_node *section, const char *name,
 			   const char *value, struct profile_node **ret_node)
 {
 	errcode_t retval;
+	//last记录p的前一个节点
 	struct profile_node *p, *last, *new;
 
 	CHECK_MAGIC(section);
@@ -1084,6 +1160,7 @@ errcode_t profile_add_node(struct profile_node *section, const char *name,
 	new->group_level = section->group_level+1;
 	new->deleted = 0;
 	new->parent = section;
+	//头插
 	new->prev = last;
 	new->next = p;
 	if (p)
@@ -1091,6 +1168,7 @@ errcode_t profile_add_node(struct profile_node *section, const char *name,
 	if (last)
 		last->next = new;
 	else
+		//如果last都为空,表示section没有子节点
 		section->first_child = new;
 	if (ret_node)
 		*ret_node = new;
@@ -1111,6 +1189,10 @@ errcode_t profile_add_node(struct profile_node *section, const char *name,
  * (This won't happen if section_flag is non-zero, obviously.)
  *
  */
+ /*
+  * 当section_flag == 1,查找匹配section,如果section_flag == 0,查找匹配relation.
+  *	查找relation的时候还需要匹配value
+  */
 errcode_t profile_find_node(struct profile_node *section, const char *name,
 			    const char *value, int section_flag, void **state,
 			    struct profile_node **node)
@@ -1126,14 +1208,19 @@ errcode_t profile_find_node(struct profile_node *section, const char *name,
 	
 	for (; p; p = p->next) {
 		if (name && (strcmp(p->name, name)))
+			//如果p->name不匹配
 			continue;
+		//如果p->name和name匹配
 		if (section_flag) {
+			//如果section_flag不为0,p->value如果不为0,就继续查找
 			if (p->value)
 				continue;
 		} else {
+			//如果section_flag为0,需要匹配value 
 			if (!p->value)
 				continue;
 			if (value && (strcmp(p->value, value)))
+				//value不匹配
 				continue;
 		}
 		if (p->deleted)
@@ -1144,6 +1231,7 @@ errcode_t profile_find_node(struct profile_node *section, const char *name,
 		break;
 	}
 	if (p == 0) {
+		//如果没有找到匹配的node 
 		*state = 0;
 		return section_flag ? PROF_NO_SECTION : PROF_NO_RELATION;
 	}
@@ -1179,10 +1267,14 @@ struct profile_iterator {
 	prf_magic_t		magic;
 	profile_t		profile;
 	int			flags;
+	//记录需要查找的 name,subname,subsubname,...
 	const char 		*const *names;
+	//记录当前匹配的section name,这个section可以是顶层的,也可以是下层的
 	const char		*name;
 	prf_file_t		file;
+	//配置文件被更新的次数
 	int			file_serial;
+	//section的级数,0,1
 	int			done_idx;
 	struct profile_node 	*node;
 	int			num;
@@ -1204,6 +1296,7 @@ profile_iterator_create(profile_t profile, const char *const *names, int flags,
 	if (!(flags & PROFILE_ITER_LIST_SECTION)) {
 		if (!names[0])
 			return PROF_BAD_NAMESET;
+		//一般section只分两级0,1
 		done_idx = 1;
 	}
 
@@ -1280,6 +1373,7 @@ get_new_file:
 				*ret_value =0;
 			return 0;
 		}
+		//检查配置文件是否有更新,如果是,则更新节点树
 		if ((retval = profile_update_file(iter->file))) {
 		    if (retval == ENOENT || retval == EACCES) {
 			/* XXX memory leak? */
@@ -1299,11 +1393,17 @@ get_new_file:
 		 */
 		section = iter->file->root;
 		for (cpp = iter->names; cpp[iter->done_idx]; cpp++) {
+			/* 
+			 * iter->names中有4个字符串,分别是name,subname,subsubname...,
+			 * 需要分别匹配
+			 */
 			for (p=section->first_child; p; p = p->next) {
 				if (!strcmp(p->name, *cpp) && !p->value)
+					//如果p->value为空的时候说明这个节点是个section,否则为relation
 					break;
 			}
 			if (!p) {
+				//没找到name
 				section = 0;
 				break;
 			}
@@ -1312,11 +1412,14 @@ get_new_file:
 				iter->flags |= PROFILE_ITER_FINAL_SEEN;
 		}
 		if (!section) {
+			//当前文件没有生产节点树,查找下一个文件
 			iter->file = iter->file->next;
 			skip_num = 0;
 			goto get_new_file;
 		}
+		//记录当前处理的section的name
 		iter->name = *cpp;
+		//记录当前处理的section的第一个child section
 		iter->node = section->first_child;
 	}
 	/*
@@ -1328,9 +1431,11 @@ get_new_file:
 			continue;
 		if ((iter->flags & PROFILE_ITER_SECTIONS_ONLY) &&
 		    p->value)
+		    //section是不能有value的
 			continue;
 		if ((iter->flags & PROFILE_ITER_RELATIONS_ONLY) &&
 		    !p->value)
+		    //relation必须有value
 			continue;
 		if (skip_num > 0) {
 			skip_num--;
@@ -1349,7 +1454,9 @@ get_new_file:
 		skip_num = 0;
 		goto get_new_file;
 	}
+	//走到这里说明找到了需要的节点
 	if ((iter->node = p->next) == NULL)
+		//如果这个节点是当前配置文件的最后一个节点,文件指针需要移到下一个文件
 		iter->file = iter->file->next;
 	if (ret_node)
 		*ret_node = p;
@@ -1390,6 +1497,7 @@ errcode_t profile_get_value(profile_t profile, const char *name,
 					      &state)))
 		return retval;
 
+	//仅仅需要获取value
 	if ((retval = profile_node_iterator(&state, 0, 0, &value)))
 		goto cleanup;
 
@@ -1415,6 +1523,7 @@ profile_get_string(profile_t profile, const char *name, const char *subname,
 		retval = profile_get_value(profile, name, subname, 
 					   subsubname, &value);
 		if (retval == PROF_NO_SECTION || retval == PROF_NO_RELATION)
+			//如果没有找到需要的section或者relation,就使用默认的value
 			value = def_val;
 		else if (retval)
 			return retval;

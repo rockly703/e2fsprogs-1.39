@@ -578,9 +578,11 @@ struct ext2_super_block {
 /* #define EXT2_FEATURE_RO_COMPAT_BTREE_DIR	0x0004 not used */
 
 #define EXT2_FEATURE_INCOMPAT_COMPRESSION	0x0001
+//File type in directory entries
 #define EXT2_FEATURE_INCOMPAT_FILETYPE		0x0002
 #define EXT3_FEATURE_INCOMPAT_RECOVER		0x0004 /* Needs recovery */
 #define EXT3_FEATURE_INCOMPAT_JOURNAL_DEV	0x0008 /* Journal device */
+//将多个group组成metagroup
 #define EXT2_FEATURE_INCOMPAT_META_BG		0x0010
 #define EXT3_FEATURE_INCOMPAT_EXTENTS		0x0040
 

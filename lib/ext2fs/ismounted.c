@@ -40,40 +40,55 @@
  * filesystem is mounted.  Returns an error if the file doesn't exist
  * or can't be opened.  
  */
+ ///etc/mtab中记录当前系统中已经挂载文件系统的情况,mtpt记录挂载点名称
 static errcode_t check_mntent_file(const char *mtab_file, const char *file, 
 				   int *mount_flags, char *mtpt, int mtlen)
 {
 	struct mntent 	*mnt;
 	struct stat	st_buf;
 	errcode_t	retval = 0;
+	//file_dev记录文件所在设备的设备号,file_rdev记录file(特殊文件)的设备号
 	dev_t		file_dev=0, file_rdev=0;
 	ino_t		file_ino=0;
 	FILE 		*f;
 	int		fd;
 
 	*mount_flags = 0;
+	/* /etc/fstab、/etc/mtab 和 /proc/mounts 其中任何一个, 
+	 * 都可以在程序中使用 getmntent() 这组函数来读取
+	*/
 	if ((f = setmntent (mtab_file, "r")) == NULL)
+		//打开mtab_file
 		return errno;
 	if (stat(file, &st_buf) == 0) {
+		//获取设备号
 		if (S_ISBLK(st_buf.st_mode)) {
 #ifndef __GNU__ /* The GNU hurd is broken with respect to stat devices */
+			//如果file是一个block device,file_rdev记录其设备号
 			file_rdev = st_buf.st_rdev;
 #endif	/* __GNU__ */
 		} else {
+			//如果file仅仅是一个普通文件,就记录这个文件所在设备的设备号及file inode
 			file_dev = st_buf.st_dev;
 			file_ino = st_buf.st_ino;
 		}
 	}
 	while ((mnt = getmntent (f)) != NULL) {
+		//逐行解析mtab_file中的条目
 		if (strcmp(file, mnt->mnt_fsname) == 0)
+			//如果条目中的设备名和file一样
 			break;
 		if (stat(mnt->mnt_fsname, &st_buf) == 0) {
+			//获取设备状态
 			if (S_ISBLK(st_buf.st_mode)) {
+				//如果设备是个块设备
 #ifndef __GNU__
 				if (file_rdev && (file_rdev == st_buf.st_rdev))
+					//如果file具有设备号并且设备号和mtab_file中设备的设备号一样
 					break;
 #endif	/* __GNU__ */
 			} else {
+				//如果file仅仅是一个普通文件,就对比这个file所在设备的设备号及file inode
 				if (file_dev && ((file_dev == st_buf.st_dev) &&
 						 (file_ino == st_buf.st_ino)))
 					break;
@@ -81,6 +96,7 @@ static errcode_t check_mntent_file(const char *mtab_file, const char *file,
 		}
 	}
 
+	//在mtab_file中搜索完毕,没有找到和file对应的项
 	if (mnt == 0) {
 #ifndef __GNU__ /* The GNU hurd is broken with respect to stat devices */
 		/*
@@ -90,8 +106,14 @@ static errcode_t check_mntent_file(const char *mtab_file, const char *file,
 		 * check if the given device has the same major/minor number
 		 * as the device that the root directory is on.
 		 */
+		/*
+		 * /proc/mounts记录根文件系统时不会有例如/dev/sda1这种记录,而是
+		 * /dev/root这种记录方式,所以还需要判断file的设备号和根文件系统的
+		 * 是否相同
+		*/
 		if (file_rdev && stat("/", &st_buf) == 0) {
 			if (st_buf.st_dev == file_rdev) {
+				//根目录所在的设备和file的设备号相同
 				*mount_flags = EXT2_MF_MOUNTED;
 				if (mtpt)
 					strncpy(mtpt, "/", mtlen);
@@ -108,7 +130,9 @@ static errcode_t check_mntent_file(const char *mtab_file, const char *file,
 	 * (read: Slackware) don't initialize /etc/mtab before checking
 	 * all of the non-root filesystems on the disk.
 	 */
+	 //走到这里说明mnt是对应于file的条目了
 	if (stat(mnt->mnt_dir, &st_buf) < 0) {
+		//获取挂载点信息失败
 		retval = errno;
 		if (retval == ENOENT) {
 #ifdef DEBUG
@@ -120,6 +144,7 @@ static errcode_t check_mntent_file(const char *mtab_file, const char *file,
 		goto errout;
 	}
 	if (file_rdev && (st_buf.st_dev != file_rdev)) {
+		//如果mtab_file中对应file的项中记录的目录所属的设备号和file不相同
 #ifdef DEBUG
 		printf("Bogus entry in %s!  (%s not mounted on %s)\n",
 		       mtab_file, file, mnt->mnt_dir);
@@ -136,6 +161,7 @@ static errcode_t check_mntent_file(const char *mtab_file, const char *file,
 #endif
 
 	if (mtpt)
+		//获取挂载点信息
 		strncpy(mtpt, mnt->mnt_dir, mtlen);
 	/*
 	 * Check to see if we're referring to the root filesystem.
@@ -144,15 +170,19 @@ static errcode_t check_mntent_file(const char *mtab_file, const char *file,
 	 * contents of /etc/mtab may not be accurate.
 	 */
 	if (!strcmp(mnt->mnt_dir, "/")) {
+		//如果挂载点是'/'
 is_root:
 #define TEST_FILE "/.ismount-test-file"		
 		*mount_flags |= EXT2_MF_ISROOT;
+		//在根文件系统中创建一个文件用于测试是否可写
 		fd = open(TEST_FILE, O_RDWR|O_CREAT);
 		if (fd < 0) {
+			//文件创建失败
 			if (errno == EROFS)
 				*mount_flags |= EXT2_MF_READONLY;
 		} else
 			close(fd);
+		//删除测试文件
 		(void) unlink(TEST_FILE);
 	}
 	retval = 0;
@@ -256,10 +286,13 @@ static int is_swap_device(const char *file)
 		if (!fgets(buf, sizeof(buf), f))
 			break;
 		if ((cp = strchr(buf, ' ')) != NULL)
+			//将第一个空格变成0
 			*cp = 0;
 		if ((cp = strchr(buf, '\t')) != NULL)
+			//将第一个tab符变成0
 			*cp = 0;
 		if (strcmp(buf, file) == 0) {
+			//在/proc/swaps中找到的文件和file同名,说明这个file是swap device
 			ret++;
 			break;
 		}
@@ -300,6 +333,7 @@ errcode_t ext2fs_check_mount_point(const char *device, int *mount_flags,
 		strncpy(mtpt, "<swap>", mtlen);
 	} else {
 #ifdef HAVE_MNTENT_H
+		//mtpt就是挂载点的文件名了
 		retval = check_mntent(device, mount_flags, mtpt, mtlen);
 #else 
 #ifdef HAVE_GETMNTINFO
@@ -318,7 +352,9 @@ errcode_t ext2fs_check_mount_point(const char *device, int *mount_flags,
 #ifdef __linux__ /* This only works on Linux 2.6+ systems */
 	if ((stat(device, &st_buf) != 0) ||
 	    !S_ISBLK(st_buf.st_mode))
+	    //如果获取设备的stat失败或者这个设备不是块设备
 		return 0;
+	//判断设备是否能够open
 	fd = open(device, O_RDONLY | O_EXCL);
 	if (fd < 0) {
 		if (errno == EBUSY)

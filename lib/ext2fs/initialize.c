@@ -124,23 +124,29 @@ errcode_t ext2fs_initialize(const char *name, int flags,
 	io_flags = IO_FLAG_RW;
 	if (flags & EXT2_FLAG_EXCLUSIVE)
 		io_flags |= IO_FLAG_EXCLUSIVE;
+	//这一步后fs->io就已经被初始化了
 	retval = manager->open(name, io_flags, &fs->io);
 	if (retval)
 		goto cleanup;
 	fs->image_io = fs->io;
 	fs->io->app_data = fs;
+	//给fs->device_name分配空间
 	retval = ext2fs_get_mem(strlen(name)+1, &fs->device_name);
 	if (retval)
 		goto cleanup;
 
+	//fs->device_name中保存了块设备的名称
 	strcpy(fs->device_name, name);
+	//给sb分配空间
 	retval = ext2fs_get_mem(SUPERBLOCK_SIZE, &super);
 	if (retval)
 		goto cleanup;
+	//fs->super指向刚给sb分配的那片内存区域
 	fs->super = super;
 
 	memset(super, 0, SUPERBLOCK_SIZE);
 
+//sb的成员值可以通过参数传递
 #define set_field(field, default) (super->field = param->field ? \
 				   param->field : (default))
 
@@ -157,17 +163,21 @@ errcode_t ext2fs_initialize(const char *name, int flags,
 	set_field(s_feature_ro_compat, 0);
 	set_field(s_first_meta_bg, 0);
 	if (super->s_feature_incompat & ~EXT2_LIB_FEATURE_INCOMPAT_SUPP) {
+		//如果出现了兼容特性以外的bit被置位(不兼容特性)
 		retval = EXT2_ET_UNSUPP_FEATURE;
 		goto cleanup;
 	}
 	if (super->s_feature_ro_compat & ~EXT2_LIB_FEATURE_RO_COMPAT_SUPP) {
+		//只读特性
 		retval = EXT2_ET_RO_UNSUPP_FEATURE;
 		goto cleanup;
 	}
 
 	set_field(s_rev_level, EXT2_GOOD_OLD_REV);
 	if (super->s_rev_level >= EXT2_DYNAMIC_REV) {
+		//如果rev大于1,以一个有效inode为11
 		set_field(s_first_ino, EXT2_GOOD_OLD_FIRST_INO);
+		//inode size = 128
 		set_field(s_inode_size, EXT2_GOOD_OLD_INODE_SIZE);
 	}
 

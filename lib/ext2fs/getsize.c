@@ -61,6 +61,7 @@
 #include "ext2fs.h"
 
 #if defined(__CYGWIN__) || defined (WIN32)
+#if 0
 #include "windows.h"
 #include "winioctl.h"
 
@@ -120,7 +121,7 @@ errcode_t ext2fs_get_device_size(const char *file, int blocksize,
 	CloseHandle(dev);
 	return 0;
 }
-
+#endif
 #else
 
 static int valid_offset (int fd, ext2_loff_t offset)
@@ -158,6 +159,7 @@ errcode_t ext2fs_get_device_size(const char *file, int blocksize,
 	char ch;
 #endif /* HAVE_SYS_DISKLABEL_H */
 
+//打开设备
 #ifdef HAVE_OPEN64
 	fd = open64(file, O_RDONLY);
 #else
@@ -178,6 +180,7 @@ errcode_t ext2fs_get_device_size(const char *file, int blocksize,
 
 #ifdef BLKGETSIZE64
 #ifdef __linux__
+	//小于2.6的kernel不支持valid_blkgetsize64
 	if ((uname(&ut) == 0) &&
 	    ((ut.release[0] == '2') && (ut.release[1] == '.') &&
 	     (ut.release[2] < '6') && (ut.release[3] == '.')))
@@ -185,6 +188,7 @@ errcode_t ext2fs_get_device_size(const char *file, int blocksize,
 #endif
 	if (valid_blkgetsize64 &&
 	    ioctl(fd, BLKGETSIZE64, &size64) >= 0) {
+	    //直接通过ioctl的方式获取磁盘大小
 		if ((sizeof(*retblocks) < sizeof(unsigned long long)) &&
 		    ((size64 / blocksize) > 0xFFFFFFFF)) {
 			rc = EFBIG;

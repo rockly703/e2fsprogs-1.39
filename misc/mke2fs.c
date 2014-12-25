@@ -103,6 +103,7 @@ static void usage(void)
 	exit(1);
 }
 
+//取log2
 static int int_log2(int arg)
 {
 	int	l = 0;
@@ -850,6 +851,11 @@ static void parse_extended_opts(struct ext2_super_block *param,
 	}
 }	
 
+/*
+ * ok_features[0]记录了支持的兼容特性
+ * ok_features[1]记录了支持的不兼容特性
+ * ok_features[2]记录了支持的只读特性
+ */
 static __u32 ok_features[3] = {
 	EXT3_FEATURE_COMPAT_HAS_JOURNAL |
 		EXT2_FEATURE_COMPAT_RESIZE_INODE |
@@ -900,6 +906,7 @@ static void PRS(int argc, char *argv[])
 	char *		oldpath = getenv("PATH");
 	char *		extended_opts = 0;
 	const char *	fs_type = 0;
+	//分区的大小,以block为单位
 	blk_t		dev_size;
 #ifdef __linux__
 	struct 		utsname ut;
@@ -940,12 +947,14 @@ static void PRS(int argc, char *argv[])
 	if ((tmp = getenv("MKE2FS_CONFIG")) != NULL)
 		config_fn[0] = tmp;
 	profile_set_syntax_err_cb(syntax_err_report);
+	//读取/etc/mke2fs.conf中的配置
 	profile_init(config_fn, &profile);
 	
 	setbuf(stdout, NULL);
 	setbuf(stderr, NULL);
 	initialize_ext2_error_table();
 	memset(&fs_param, 0, sizeof(struct ext2_super_block));
+	//默认使用rev 1的文件系统
 	fs_param.s_rev_level = 1;  /* Create revision 1 filesystems now */
 
 #ifdef __linux__
@@ -954,6 +963,7 @@ static void PRS(int argc, char *argv[])
 		exit(1);
 	}
 	linux_version_code = parse_version_number(ut.release);
+	//根据当前kernel版本来选择文件系统版本
 	if (linux_version_code && linux_version_code < (2*65536 + 2*256))
 		fs_param.s_rev_level = 0;
 #endif
@@ -962,6 +972,7 @@ static void PRS(int argc, char *argv[])
 		program_name = get_progname(*argv);
 
 		/* If called as mkfs.ext3, create a journal inode */
+		//判断是mkfs.ext2还是mkfs.ext3
 		if (!strcmp(program_name, "mkfs.ext3"))
 			journal_size = -1;
 	}
@@ -970,6 +981,7 @@ static void PRS(int argc, char *argv[])
 		    "b:cf:g:i:jl:m:no:qr:s:tvE:FI:J:L:M:N:O:R:ST:V")) != EOF) {
 		switch (c) {
 		case 'b':
+			//获取block_size
 			blocksize = strtol(optarg, &tmp, 0);
 			b = (blocksize > 0) ? blocksize : -blocksize;
 			if (b < EXT2_MIN_BLOCK_SIZE ||
@@ -992,6 +1004,7 @@ static void PRS(int argc, char *argv[])
 			cflag++;
 			break;
 		case 'f':
+			//fragment size
 			size = strtoul(optarg, &tmp, 0);
 			if (size < EXT2_MIN_BLOCK_SIZE ||
 			    size > EXT2_MAX_BLOCK_SIZE || *tmp) {
@@ -1006,6 +1019,7 @@ static void PRS(int argc, char *argv[])
 			       "Ignoring -f option\n"));
 			break;
 		case 'g':
+			//设置blocks_per_group
 			fs_param.s_blocks_per_group = strtoul(optarg, &tmp, 0);
 			if (*tmp) {
 				com_err(program_name, 0,
@@ -1056,6 +1070,7 @@ static void PRS(int argc, char *argv[])
 			}
 			break;
 		case 'n':
+			//mkfs不做格式化的操作,仅仅显示文件系统信息 
 			noaction++;
 			break;
 		case 'o':
@@ -1071,6 +1086,7 @@ static void PRS(int argc, char *argv[])
 					_("bad revision level - %s"), optarg);
 				exit(1);
 			}
+			//文件系统rev
 			fs_param.s_rev_level = r_opt;
 			break;
 		case 's':	/* deprecated */
@@ -1078,6 +1094,7 @@ static void PRS(int argc, char *argv[])
 			break;
 #ifdef EXT2_DYNAMIC_REV
 		case 'I':
+			//指定inode size
 			inode_size = strtoul(optarg, &tmp, 0);
 			if (*tmp) {
 				com_err(program_name, 0,
@@ -1127,8 +1144,10 @@ static void PRS(int argc, char *argv[])
 			usage();
 		}
 	}
+	//当命令行中只有选项及选项参数,没有操作数时,才会出现optind == argc的情况
 	if ((optind == argc) && !show_version_only)
 		usage();
+	//device_name被移动到了最后一个参数
 	device_name = argv[optind++];
 
 	if (!quiet || show_version_only)
@@ -1178,6 +1197,7 @@ static void PRS(int argc, char *argv[])
 	}
 
 	if (blocksize > sys_page_size) {
+		//blocksize 不能大于 page size
 		if (!force) {
 			com_err(program_name, 0,
 				_("%d-byte blocks too big for system (max %d)"),
@@ -1189,6 +1209,7 @@ static void PRS(int argc, char *argv[])
 			blocksize, sys_page_size);
 	}
 	if (optind < argc) {
+		//计算文件系统中block count,在命令行的参数中,设备后接的是block count
 		fs_param.s_blocks_count = parse_num_blocks(argv[optind++], 
 				fs_param.s_log_block_size);
 		if (!fs_param.s_blocks_count) {
@@ -1202,8 +1223,10 @@ static void PRS(int argc, char *argv[])
 
 	if (!force)
 		check_plausibility(device_name);
+	//检查device_name是否被挂载上了,是否正在使用中
 	check_mount(device_name, force, _("filesystem"));
 
+	//frag size和block size相同
 	fs_param.s_log_frag_size = fs_param.s_log_block_size;
 
 	if (noaction && fs_param.s_blocks_count) {
@@ -1248,25 +1271,33 @@ static void PRS(int argc, char *argv[])
 				  ));
 				exit(1);
 			}
-			fs_param.s_blocks_count = dev_size;
+			//设置blocks_count
+			fs_param.s_blocks_count = dev_size; 
 			if (sys_page_size > EXT2_BLOCK_SIZE(&fs_param))
+				/* 
+				 * block num * block count要以page 对齐.
+			    */
 				fs_param.s_blocks_count &= ~((sys_page_size /
 					   EXT2_BLOCK_SIZE(&fs_param))-1);
 		}
 		
 	} else if (!force && (fs_param.s_blocks_count > dev_size)) {
+		//如果参数中指定block count大于通过ioctl获取的磁盘大小,并且不是强制指定,需要用户确认
 		com_err(program_name, 0,
 			_("Filesystem larger than apparent device size."));
 		proceed_question();
 	}
 
 	if (!fs_type) {
+		//megs记录设备大小,以MB为单位
 		int megs = fs_param.s_blocks_count * 
 			(EXT2_BLOCK_SIZE(&fs_param) / 1024) / 1024;
 
 		if (megs <= 3)
+			//设备小于3MB,说明设备可能是floppy
 			fs_type = "floppy";
 		else if (megs <= 512)
+			//小于512MB,说明可能是小容量存储设备
 			fs_type = "small";
 		else
 			fs_type = "default";
@@ -1275,6 +1306,7 @@ static void PRS(int argc, char *argv[])
 	/* Figure out what features should be enabled */
 
 	if (r_opt == EXT2_GOOD_OLD_REV && fs_features) {
+		//rev 0不支持features
 		fprintf(stderr, _("Filesystem features not supported "
 				  "with revision 0 filesystems\n"));
 		exit(1);
@@ -1284,6 +1316,7 @@ static void PRS(int argc, char *argv[])
 			   "filetype,sparse_super", &tmp);
 	profile_get_string(profile, "fs_types", fs_type, "base_features",
 			   tmp, &tmp2);
+	//将tmp2中字符串的特性转成整形赋值给s_feature_compat
 	edit_feature(tmp2, &fs_param.s_feature_compat);
 	free(tmp);
 	free(tmp2);
@@ -1292,6 +1325,7 @@ static void PRS(int argc, char *argv[])
 			   "", &tmp);
 	profile_get_string(profile, "fs_types", fs_type, 
 			   "default_features", tmp, &tmp2);
+	//将命令行中如feature_r0这种字符串,转成整形赋值给s_feature_compat
 	edit_feature(fs_features ? fs_features : tmp2, 
 		     &fs_param.s_feature_compat);
 	free(tmp);
@@ -1483,6 +1517,7 @@ int main (int argc, char *argv[])
 	 * Wipe out the old on-disk superblock
 	 */
 	if (!noaction)
+		//擦除磁盘上旧的sb
 		zap_sector(fs, 2, 6);
 
 	/*
