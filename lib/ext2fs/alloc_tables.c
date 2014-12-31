@@ -31,6 +31,10 @@ errcode_t ext2fs_allocate_group_table(ext2_filsys fs, dgrp_t group,
 				      ext2fs_block_bitmap bmap)
 {
 	errcode_t	retval;
+    /*
+     * group_blk: 当前group起始的block
+     * last_blk:  fs最后一个block
+    */
 	blk_t		group_blk, start_blk, last_blk, new_blk, blk;
 	int		j;
 
@@ -39,6 +43,7 @@ errcode_t ext2fs_allocate_group_table(ext2_filsys fs, dgrp_t group,
 	
 	last_blk = group_blk + fs->super->s_blocks_per_group;
 	if (last_blk >= fs->super->s_blocks_count)
+        //最后一个group中的block数量可能没有s_blocks_per_group那么多
 		last_blk = fs->super->s_blocks_count - 1;
 
 	if (!bmap)

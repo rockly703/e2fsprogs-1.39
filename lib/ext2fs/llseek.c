@@ -94,6 +94,10 @@ ext2_loff_t ext2fs_llseek (int fd, ext2_loff_t offset, int origin)
 
 	if ((sizeof(off_t) >= sizeof(ext2_loff_t)) ||
 	    (offset < ((ext2_loff_t) 1 << ((sizeof(off_t)*8) -1))))
+	    /*
+	     * 如果off_t类型长度大于ext2_loff_t,或者offset比off_t所能表示最大
+	     * 数值要小,这时候就没有必要使用my_llseek,使用标准的lseek即可
+		*/
 		return lseek(fd, (off_t) offset, origin);
 
 	if (do_compat) {

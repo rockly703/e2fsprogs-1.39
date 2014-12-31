@@ -173,6 +173,7 @@ errcode_t ext2fs_initialize(const char *name, int flags,
      * s_first_data_block = 0
      */
 	set_field(s_first_data_block, super->s_log_block_size ? 0 : 1);
+    //默认每挂载20次,fsck一次
 	set_field(s_max_mnt_count, EXT2_DFL_MAX_MNT_COUNT);
 	set_field(s_errors, EXT2_ERRORS_DEFAULT);
 	set_field(s_feature_compat, 0);
@@ -448,6 +449,7 @@ retry:
 	ext2fs_mark_bb_dirty(fs);
 	ext2fs_mark_ib_dirty(fs);
 	
+    //设置fs->io->block_size = fs->blocksize
 	io_channel_set_blksize(fs->io, fs->blocksize);
 
 	*ret_fs = fs;

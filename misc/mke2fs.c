@@ -116,6 +116,7 @@ static int int_log2(int arg)
 	return l;
 }
 
+//10进制的arg有多少位
 static int int_log10(unsigned int arg)
 {
 	int	l;
@@ -194,6 +195,7 @@ static void test_disk(ext2_filsys fs, badblocks_list *bb_list)
 		fs->device_name, fs->super->s_blocks_count);
 	if (verbose)
 		printf(_("Running command: %s\n"), buf);
+    //执行badblocks
 	f = popen(buf, "r");
 	if (!f) {
 		com_err("popen", errno,
@@ -601,6 +603,7 @@ static void zap_sector(ext2_filsys fs, int sect, int nsect)
 	}
 
 	memset(buf, 0, 512*nsect);
+    //设置fs->io->blocksize = 512
 	io_channel_set_blksize(fs->io, 512);
 	retval = io_channel_write_blk(fs->io, sect, -512*nsect, buf);
 	io_channel_set_blksize(fs->io, fs->blocksize);
@@ -659,8 +662,13 @@ static void show_stats(ext2_filsys fs)
         char                    *os;
 	blk_t			group_block;
 	dgrp_t			i;
+    /* 
+     * need记录sb的block no打印出来占多少位
+     * col_left记录本行还有多少位可以用来打印sb的block no
+     */
 	int			need, col_left;
 	
+    //设置的block count可能和sb中记录的不一致
 	if (fs_param.s_blocks_count != s->s_blocks_count)
 		fprintf(stderr, _("warning: %u blocks unused.\n\n"),
 		       fs_param.s_blocks_count - s->s_blocks_count);
@@ -709,10 +717,14 @@ static void show_stats(ext2_filsys fs)
 		if (!ext2fs_bg_has_super(fs, i))
 			continue;
 		if (i != 1)
+            //第一个元素不打印','
 			printf(", ");
+        //+2是因为','和' '各占用一为
 		need = int_log10(group_block) + 2;
 		if (need > col_left) {
+            //一行打印完毕
 			printf("\n\t");
+            //一行最多有72个字符
 			col_left = 72;
 		}
 		col_left -= need;
@@ -1575,11 +1587,13 @@ int main (int argc, char *argv[])
 	 */
 	for (i = 0, val = 0 ; i < sizeof(fs->super->s_uuid); i++)
 		val += fs->super->s_uuid[i];
+    //避免同时检查所有的fs
 	fs->super->s_max_mnt_count += val % EXT2_DFL_MAX_MNT_COUNT;
 
 	/*
 	 * Override the creator OS, if applicable
 	 */
+    //给sb->s_creator_os赋值
 	if (creator_os && !set_os(fs->super, creator_os)) {
 		com_err (program_name, 0, _("unknown os - %s"), creator_os);
 		exit(1);
