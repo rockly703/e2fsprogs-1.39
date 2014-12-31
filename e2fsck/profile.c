@@ -1570,13 +1570,13 @@ profile_get_integer(profile_t profile, const char *name, const char *subname,
 	if ((ret_long == LONG_MIN || ret_long == LONG_MAX) && errno != 0)
 	    return PROF_BAD_INTEGER;
 	/* Value outside "int" range.  */
+	//不能超过整形的范围
 	if ((long) (int) ret_long != ret_long)
 	    return PROF_BAD_INTEGER;
 	/* Garbage in string.  */
 	if (end_value != value + strlen (value))
 	    return PROF_BAD_INTEGER;
-	
-   
+
 	*ret_int = ret_long;
 	return 0;
 }

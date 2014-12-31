@@ -352,8 +352,8 @@ static errcode_t flush_cached_blocks(io_channel channel,
 	retval2 = 0;
 	for (i=0, cache = data->cache; i < CACHE_SIZE; i++, cache++) {
 		if (!cache->in_use)
-			continue;
-		
+            continue;
+        
 		if (invalidate)
 			cache->in_use = 0;
 		

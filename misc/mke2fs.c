@@ -773,6 +773,7 @@ static void parse_extended_opts(struct ext2_super_block *param,
 			*arg = 0;
 			arg++;
 		}
+		//RAID使用的trunk
 		if (strcmp(token, "stride") == 0) {
 			if (!arg) {
 				r_usage++;
@@ -786,6 +787,10 @@ static void parse_extended_opts(struct ext2_super_block *param,
 				r_usage++;
 				continue;
 			}
+		/*
+		 * Reserve  enough  space  so that the block group descriptor table 
+		 * can grow to support a filesystem that has max-online-resize blocks.
+		 */
 		} else if (!strcmp(token, "resize")) {
 			unsigned long resize, bpg, rsv_groups;
 			unsigned long group_desc_count, desc_blocks;
@@ -816,18 +821,28 @@ static void parse_extended_opts(struct ext2_super_block *param,
 			}
 
 			blocksize = EXT2_BLOCK_SIZE(param);
+			//一个group中的block个数
 			bpg = param->s_blocks_per_group;
 			if (!bpg)
 				bpg = blocksize * 8;
+			//每个block中的group descriptor的个数
 			gdpb = blocksize / sizeof(struct ext2_group_desc);
+			//文件系统中group descriptor的个数
 			group_desc_count = (param->s_blocks_count +
 					    bpg - 1) / bpg;
+			//所有的group descriptor占用的block个数
 			desc_blocks = (group_desc_count +
 				       gdpb - 1) / gdpb;
+			//扩容后的group descriptor个数
 			rsv_groups = (resize + bpg - 1) / bpg;
+			/*
+			 * 扩容后的group descriptor占用的block的个数 - 系统中已经被group descriptor占用的
+			 * block个数 = 需要为扩容预留的block个数
+			 */
 			rsv_gdb = (rsv_groups + gdpb - 1) / gdpb - 
 				desc_blocks;
 			if (rsv_gdb > (int) EXT2_ADDR_PER_BLOCK(param))
+				//为扩容预留的block数量不能超过一个block能容纳地址的个数 
 				rsv_gdb = EXT2_ADDR_PER_BLOCK(param);
 
 			if (rsv_gdb > 0) {
@@ -896,8 +911,10 @@ static void PRS(int argc, char *argv[])
 	int		size;
 	char 		*tmp, *tmp2;
 	int		blocksize = 0;
+	//文件系统中多少个字节分配一个inode
 	int		inode_ratio = 0;
 	int		inode_size = 0;
+	//保留的block 比率
 	double		reserved_ratio = 5.0;
 	int		sector_size = 0;
 	int		show_version_only = 0;
@@ -974,6 +991,7 @@ static void PRS(int argc, char *argv[])
 		/* If called as mkfs.ext3, create a journal inode */
 		//判断是mkfs.ext2还是mkfs.ext3
 		if (!strcmp(program_name, "mkfs.ext3"))
+			//如果执行的命令是mkfs.ext3,journal_size = -1;
 			journal_size = -1;
 	}
 
@@ -1049,6 +1067,7 @@ static void PRS(int argc, char *argv[])
 			break;
 		case 'j':
 			if (!journal_size)
+				//如果journal_size == 0,修改其值为 -1.也就是强制使用journal
 				journal_size = -1;
 			break;
 		case 'l':
@@ -1061,6 +1080,7 @@ static void PRS(int argc, char *argv[])
 			strcpy(bad_blocks_filename, optarg);
 			break;
 		case 'm':
+			//保留的block数量不能超过总数的50%
 			reserved_ratio = strtod(optarg, &tmp);
 			if (reserved_ratio > 50 || *tmp) {
 				com_err(program_name, 0,
@@ -1090,6 +1110,10 @@ static void PRS(int argc, char *argv[])
 			fs_param.s_rev_level = r_opt;
 			break;
 		case 's':	/* deprecated */
+			/* 
+			 * -s xxx,如果xxx > 0,表示使用SPARSE_SUPER这种特性,
+			 * xxx == 0,表示去除SPARSE_SUPER这种特性
+			 */
 			s_opt = atoi(optarg);
 			break;
 #ifdef EXT2_DYNAMIC_REV
@@ -1234,6 +1258,7 @@ static void PRS(int argc, char *argv[])
 		retval = 0;
 	} else {
 	retry:
+		//第一次计算block count,这个时候的block size以1024为单位
 		retval = ext2fs_get_device_size(device_name,
 						EXT2_BLOCK_SIZE(&fs_param),
 						&dev_size);
@@ -1271,7 +1296,7 @@ static void PRS(int argc, char *argv[])
 				  ));
 				exit(1);
 			}
-			//设置blocks_count
+			//设置s_blocks_count
 			fs_param.s_blocks_count = dev_size; 
 			if (sys_page_size > EXT2_BLOCK_SIZE(&fs_param))
 				/* 
@@ -1316,7 +1341,7 @@ static void PRS(int argc, char *argv[])
 			   "filetype,sparse_super", &tmp);
 	profile_get_string(profile, "fs_types", fs_type, "base_features",
 			   tmp, &tmp2);
-	//将tmp2中字符串的特性转成整形赋值给s_feature_compat
+	//将配置文件中的base_features的值转成整形赋值给s_feature_compat
 	edit_feature(tmp2, &fs_param.s_feature_compat);
 	free(tmp);
 	free(tmp2);
@@ -1325,7 +1350,7 @@ static void PRS(int argc, char *argv[])
 			   "", &tmp);
 	profile_get_string(profile, "fs_types", fs_type, 
 			   "default_features", tmp, &tmp2);
-	//将命令行中如feature_r0这种字符串,转成整形赋值给s_feature_compat
+	//如果命令行中设置了feature,使用命令行中的feature,否则使用配置文件的default_features 
 	edit_feature(fs_features ? fs_features : tmp2, 
 		     &fs_param.s_feature_compat);
 	free(tmp);
@@ -1374,10 +1399,12 @@ static void PRS(int argc, char *argv[])
 
 	if ((tmp = getenv("MKE2FS_DEVICE_SECTSIZE")) != NULL)
 		sector_size = atoi(tmp);
-	
+
+	//第2次计算block count,这时候的block size以配置文件中的为单位
 	if (blocksize <= 0) {
 		profile_get_integer(profile, "defaults", "blocksize", 0,
 				    1024, &use_bsize);
+		//如果fs_types中有值,会将default中的覆盖
 		profile_get_integer(profile, "fs_types", fs_type, 
 				    "blocksize", use_bsize, &use_bsize);
 
@@ -1387,6 +1414,7 @@ static void PRS(int argc, char *argv[])
 			    (use_bsize > 4096))
 				use_bsize = 4096;
 		}
+		//block size不能小于硬件的sector size
 		if (sector_size && use_bsize < sector_size)
 			use_bsize = sector_size;
 		if ((blocksize < 0) && (use_bsize < (-blocksize)))
@@ -1396,22 +1424,27 @@ static void PRS(int argc, char *argv[])
 	}
 
 	if (inode_ratio == 0) {
+		//从配置文件中获取inode_ratio 
 		profile_get_integer(profile, "defaults", "inode_ratio", 0,
 				    8192, &inode_ratio);
 		profile_get_integer(profile, "fs_types", fs_type, 
 				    "inode_ratio", inode_ratio, 
 				    &inode_ratio);
 
+		//命令行没有指定inode_ratio时,inode个数不能比block个数多
 		if (inode_ratio < blocksize)
 			inode_ratio = blocksize;
 	}
 
+	//使用配置文件的block size
 	fs_param.s_log_frag_size = fs_param.s_log_block_size =
 		int_log2(blocksize >> EXT2_MIN_BLOCK_LOG_SIZE);
 
+ 	//配置文件中的block size可能不是2的n次幂,经过上个步骤,对block size进行了对齐
 	blocksize = EXT2_BLOCK_SIZE(&fs_param);
-	
+
 	if (extended_opts)
+		//解析拓展选项
 		parse_extended_opts(&fs_param, extended_opts);
 
 	/* Since sparse_super is the default, we would only have a problem
@@ -1419,6 +1452,7 @@ static void PRS(int argc, char *argv[])
 	 */
 	if ((fs_param.s_feature_compat & EXT2_FEATURE_COMPAT_RESIZE_INODE) &&
 	    !(fs_param.s_feature_ro_compat&EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER)) {
+	    //这个文件系统中有支持resize_inode,但是没有sparse_super
 		com_err(program_name, 0,
 			_("reserved online resize blocks not supported "
 			  "on non-sparse filesystem"));
@@ -1447,10 +1481,12 @@ static void PRS(int argc, char *argv[])
 			"blocksizes greater than 4096\n\tusing ext3.  "
 			"Use -b 4096 if this is an issue for you.\n\n"));
 
-	if (inode_size) {
+ 	if (inode_size) {
+		//在这里,如果inode_size > 0,一定是命令行传来的
 		if (inode_size < EXT2_GOOD_OLD_INODE_SIZE ||
 		    inode_size > EXT2_BLOCK_SIZE(&fs_param) ||
 		    inode_size & (inode_size - 1)) {
+		    //inode_size不能小于128,不能大于block size,必须是2的n次方
 			com_err(program_name, 0,
 				_("invalid inode size %d (min %d/max %d)"),
 				inode_size, EXT2_GOOD_OLD_INODE_SIZE,
@@ -1467,6 +1503,7 @@ static void PRS(int argc, char *argv[])
 	/*
 	 * Calculate number of inodes based on the inode ratio
 	 */
+	//如果命令行中没有指定num_inodes,那就使用文件系统大小/inode_ratio
 	fs_param.s_inodes_count = num_inodes ? num_inodes : 
 		((__u64) fs_param.s_blocks_count * blocksize)
 			/ inode_ratio;

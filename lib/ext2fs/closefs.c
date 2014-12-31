@@ -19,6 +19,7 @@
 #include "ext2_fs.h"
 #include "ext2fsP.h"
 
+//判断a是否是b的n次幂
 static int test_root(int a, int b)
 {
 	if (a == 0)
@@ -27,6 +28,7 @@ static int test_root(int a, int b)
 		if (a == 1)
 			return 1;
 		if (a % b)
+			//如果a / b有余数
 			return 0;
 		a = a / b;
 	}
@@ -36,8 +38,10 @@ int ext2fs_bg_has_super(ext2_filsys fs, int group_block)
 {
 	if (!(fs->super->s_feature_ro_compat &
 	      EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER))
+		//文件系统本身不具有sparse super的特性,每个group都有完整的meta data
 		return 1;
 
+	//当group 为0,1或者是3,5,7的n次幂的时候,这个group一定含有完整的meta data
 	if (test_root(group_block, 3) || (test_root(group_block, 5)) ||
 	    test_root(group_block, 7))
 		return 1;
@@ -45,6 +49,7 @@ int ext2fs_bg_has_super(ext2_filsys fs, int group_block)
 	return 0;
 }
 
+//返回fs除了meta data外,还能使用的block个数
 int ext2fs_super_and_bgd_loc(ext2_filsys fs, 
 			     dgrp_t group,
 			     blk_t *ret_super_blk,
@@ -52,9 +57,15 @@ int ext2fs_super_and_bgd_loc(ext2_filsys fs,
 			     blk_t *ret_new_desc_blk,
 			     int *ret_meta_bg)
 {
+	/* 
+	 * group_block:	获取第"group"个group的第一个block的位置
+     * old_desc_blk:用于记录group desc开始的位置
+     * new_desc_blk:开启META_BG后,gdt的位置
+	 */
 	blk_t	group_block, super_blk = 0, old_desc_blk = 0, new_desc_blk = 0;
 	unsigned int meta_bg, meta_bg_size;
 	int	numblocks, has_super;
+	//组描述符及保留的组描述符占用的block数量
 	int	old_desc_blocks;
 
 	group_block = fs->super->s_first_data_block +
@@ -67,12 +78,18 @@ int ext2fs_super_and_bgd_loc(ext2_filsys fs,
 			fs->desc_blocks + fs->super->s_reserved_gdt_blocks;
 
 	if (group == fs->group_desc_count-1) {
+		//fs中的最后一个group
 		numblocks = (fs->super->s_blocks_count -
 			     fs->super->s_first_data_block) %
 			fs->super->s_blocks_per_group;
 		if (!numblocks)
+			/*
+			 * 如果numblocks不为0,表示最后一个group的block不足一个s_blocks_per_group.
+			 * 如果numblocks为0,表示所有的group中的block数量是一样的
+			 */
 			numblocks = fs->super->s_blocks_per_group;
 	} else
+		//对于不是fs中最后一个的group,其block数量一定是s_blocks_per_group
 		numblocks = fs->super->s_blocks_per_group;
 
 	has_super = ext2fs_bg_has_super(fs, group);
@@ -81,26 +98,42 @@ int ext2fs_super_and_bgd_loc(ext2_filsys fs,
 		super_blk = group_block;
 		numblocks--;
 	}
+	//meta group中group的数量只能等于一个block中能够容纳ext2_group_desc的数量
 	meta_bg_size = (fs->blocksize / sizeof (struct ext2_group_desc));
+	//meta_bg用于记录当前正在处理meta group的下标
 	meta_bg = group / meta_bg_size;
 
 	if (!(fs->super->s_feature_incompat & EXT2_FEATURE_INCOMPAT_META_BG) ||
 	    (meta_bg < fs->super->s_first_meta_bg)) {
+		//如果fs没有META_BG feature或者meta group的下标小于fs中第一个meta group的下标
 		if (has_super) {
+			//跳过sb
 			old_desc_blk = group_block + 1;
+			//如果一个group有sb的话,肯定也有组描述符表和reserved group desc
 			numblocks -= old_desc_blocks;
 		}
 	} else {
+		//如果fs开启了META_BG feature并且meta group的下标大于等于fs中第一个meta group的下标
 		if (((group % meta_bg_size) == 0) ||
 		    ((group % meta_bg_size) == 1) ||
 		    ((group % meta_bg_size) == (meta_bg_size-1))) {
+			//一个meta group中只有在meta group中的第0,1及最后一个group才可能有sb
 			if (has_super)
 				has_super = 1;
+            /* 
+             * 如果开启了META_BG,并且在meta group中的第0,1及最后一个group,一定会有gdt
+             */
 			new_desc_blk = group_block + has_super;
+			/* 
+			 * 如果开启了META_BG,并且在meta group中的第0,1及最后一个group,在sb后接的就不是
+			 * 存有组描述符的block了,而是一个存有当前meta group中所有group descriptor的
+			 * 一个block,在这个block后接的就是block bitmap,inode bitmap...
+			 */
 			numblocks--;
 		}
 	}
-		
+
+	//一个group中有2个bitmap
 	numblocks -= 2 + fs->inode_blocks_per_group;
 
 	if (ret_super_blk)

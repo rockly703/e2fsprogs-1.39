@@ -211,10 +211,14 @@ struct struct_ext2_filsys {
 	struct ext2_super_block	* 	super;
 	unsigned int			blocksize;
 	int				fragsize;
+	//组描述符的个数
 	dgrp_t				group_desc_count;
+	//组描述符占用的block个数
 	unsigned long			desc_blocks;
 	struct ext2_group_desc *	group_desc;
+	//每组inode table占用的block数量
 	int				inode_blocks_per_group;
+	//以下两个bitmap是整个fs的bitmap
 	ext2fs_inode_bitmap		inode_map;
 	ext2fs_block_bitmap		block_map;
 	errcode_t (*get_blocks)(ext2_filsys fs, ext2_ino_t ino, blk_t *blocks);

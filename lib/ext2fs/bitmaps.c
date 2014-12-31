@@ -57,6 +57,7 @@ static errcode_t make_bitmap(__u32 start, __u32 end, __u32 real_end,
 		bitmap->description = 0;
 
 	size = (size_t) (((bitmap->real_end - bitmap->start) / 8) + 1);
+	//bitmap->bitmap才是真正的bitmap
 	retval = ext2fs_get_mem(size, &bitmap->bitmap);
 	if (retval) {
 		ext2fs_free_mem(&bitmap->description);
@@ -64,6 +65,7 @@ static errcode_t make_bitmap(__u32 start, __u32 end, __u32 real_end,
 		return retval;
 	}
 
+	//如果init_map不是NULL,bitmap->bitmap就使用这个map,否则清空bitmap->bitmap
 	if (init_map)
 		memcpy(bitmap->bitmap, init_map, size);
 	else
@@ -120,8 +122,10 @@ errcode_t ext2fs_allocate_inode_bitmap(ext2_filsys fs,
 
 	fs->write_bitmaps = ext2fs_write_bitmaps;
 
+	//inode number都是从1开始
 	start = 1;
 	end = fs->super->s_inodes_count;
+	//最后一个group的最后一个inode
 	real_end = (EXT2_INODES_PER_GROUP(fs->super) * fs->group_desc_count);
 
 	retval = ext2fs_allocate_generic_bitmap(start, end, real_end,
@@ -151,6 +155,7 @@ errcode_t ext2fs_allocate_block_bitmap(ext2_filsys fs,
 
 	start = fs->super->s_first_data_block;
 	end = fs->super->s_blocks_count-1;
+	//最后一个group的最后一个block
 	real_end = (EXT2_BLOCKS_PER_GROUP(fs->super)  
 		    * fs->group_desc_count)-1 + start;
 	

@@ -194,7 +194,12 @@ struct ext2_dx_countlimit {
 #define EXT2_INODES_PER_GROUP(s)	(EXT2_SB(s)->s_inodes_per_group)
 #define EXT2_INODES_PER_BLOCK(s)	(EXT2_BLOCK_SIZE(s)/EXT2_INODE_SIZE(s))
 /* limits imposed by 16-bit value gd_free_{blocks,inode}_count */
+/* 
+ * gpt中bg_free_blocks_count/bg_free_blocks_count都是16位的,这就限制了组中block及
+ * inode数量,这里-8是因为在block bitmap中需要字节对齐
+ */
 #define EXT2_MAX_BLOCKS_PER_GROUP(s)	((1 << 16) - 8)
+//- EXT2_INODES_PER_BLOCK(s)是因为inode table需要以block对齐
 #define EXT2_MAX_INODES_PER_GROUP(s)	((1 << 16) - EXT2_INODES_PER_BLOCK(s))
 #ifdef __KERNEL__
 #define EXT2_DESC_PER_BLOCK(s)		(EXT2_SB(s)->s_desc_per_block)
@@ -523,6 +528,7 @@ struct ext2_super_block {
 	__u8	s_jnl_backup_type; 	/* Default type of journal backup */
 	__u16	s_reserved_word_pad;
 	__u32	s_default_mount_opts;
+	//the block group ID of the first meta block group
 	__u32	s_first_meta_bg;	/* First metablock group */
 	__u32	s_mkfs_time;		/* When the filesystem was created */
 	__u32	s_jnl_blocks[17]; 	/* Backup of the journal inode */
