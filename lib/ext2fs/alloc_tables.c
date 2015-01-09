@@ -27,6 +27,7 @@
 #include "ext2_fs.h"
 #include "ext2fs.h"
 
+//给第"group"个group分配block bitmap,inode bitmap,inode table
 errcode_t ext2fs_allocate_group_table(ext2_filsys fs, dgrp_t group,
 				      ext2fs_block_bitmap bmap)
 {
@@ -66,6 +67,7 @@ errcode_t ext2fs_allocate_group_table(ext2_filsys fs, dgrp_t group,
 		start_blk = group_blk;
 
 	if (!fs->group_desc[group].bg_block_bitmap) {
+        //从mke2fs.c中的main进来时只有fs->block_map
 		retval = ext2fs_get_free_blocks(fs, start_blk, last_blk,
 						1, bmap, &new_blk);
 		if (retval == EXT2_ET_BLOCK_ALLOC_FAIL) 
@@ -73,6 +75,7 @@ errcode_t ext2fs_allocate_group_table(ext2_filsys fs, dgrp_t group,
 					last_blk, 1, bmap, &new_blk);
 		if (retval)
 			return retval;
+        //将刚才找到的那个free block置位,给第"group"个group用作block bitmap
 		ext2fs_mark_block_bitmap(bmap, new_blk);
 		fs->group_desc[group].bg_block_bitmap = new_blk;
 	}
@@ -92,6 +95,7 @@ errcode_t ext2fs_allocate_group_table(ext2_filsys fs, dgrp_t group,
 	/*
 	 * Allocate the inode table
 	 */
+	 //第"group"个group的inode bitmap,block bitmap分配完毕,接下来就分配inode table
 	if (!fs->group_desc[group].bg_inode_table) {
 		retval = ext2fs_get_free_blocks(fs, group_blk, last_blk,
 						fs->inode_blocks_per_group,

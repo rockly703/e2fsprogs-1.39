@@ -152,7 +152,7 @@ _INLINE_ void ext2fs_fast_clear_bit(unsigned int nr, void * addr)
 	*ADDR &= ~(1 << (nr & 0x07));
 }
 
-
+#if 0
 #if ((defined __GNUC__) && !defined(_EXT2_USE_C_VERSIONS_) && \
      (defined(__i386__) || defined(__i486__) || defined(__i586__)))
 
@@ -289,7 +289,9 @@ _INLINE_ __u16 ext2fs_swab16(__u16 val)
 #undef EXT2FS_ADDR
 
 #endif	/* i386 */
+#endif
 
+#if 0
 #if ((defined __GNUC__) && !defined(_EXT2_USE_C_VERSIONS_) && \
      (defined(__mc68000__)))
 
@@ -326,6 +328,7 @@ _INLINE_ int ext2fs_test_bit(unsigned int nr, const void * addr)
 }
 
 #endif /* __mc68000__ */
+#endif
 
 
 #if !defined(_EXT2_HAVE_ASM_SWAB_) && defined(EXT2FS_ENABLE_SWAPFS)
@@ -439,6 +442,7 @@ _INLINE_ int ext2fs_unmark_inode_bitmap(ext2fs_inode_bitmap bitmap,
 				     inode);
 }
 
+//相比于ext2fs_fast_test_inode_bitmap,ext2fs_test_inode_bitmap会进行边界判断
 _INLINE_ int ext2fs_test_inode_bitmap(ext2fs_inode_bitmap bitmap,
 				       ext2_ino_t inode)
 {
@@ -575,6 +579,7 @@ _INLINE_ int ext2fs_fast_test_block_bitmap_range(ext2fs_block_bitmap bitmap,
 #endif
 	for (i=0; i < num; i++) {
 		if (ext2fs_fast_test_block_bitmap(bitmap, block+i))
+            //如果bitmap中block + i这一位已经置位,返回0
 			return 0;
 	}
 	return 1;

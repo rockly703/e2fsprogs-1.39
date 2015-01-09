@@ -307,10 +307,12 @@ static void progress_init(struct progress_struct *progress,
 	 * Figure out how many digits we need
 	 */
 	i = int_log10(max);
+    //这3个'%'中,前两个"%%",输出'%',第3个'%'和'd'被i替换,输出根据实际的i值对齐
 	sprintf(progress->format, "%%%dd/%%%dld", i, i);
 	memset(progress->backup, '\b', sizeof(progress->backup)-1);
 	progress->backup[sizeof(progress->backup)-1] = 0;
 	if ((2*i)+1 < (int) sizeof(progress->backup))
+        //根据i值输出backspace,用于将输出的字符删除
 		progress->backup[(2*i)+1] = 0;
 	progress->max = max;
 
@@ -318,7 +320,9 @@ static void progress_init(struct progress_struct *progress,
 	if (getenv("MKE2FS_SKIP_PROGRESS"))
 		progress->skip_progress++;
 
+    //输出label
 	fputs(label, stdout);
+    //将缓存中的内容全部输出到stdout
 	fflush(stdout);
 }
 
@@ -366,6 +370,7 @@ static errcode_t zero_blocks(ext2_filsys fs, blk_t blk, int num,
 	}
 	/* Allocate the zeroizing buffer if necessary */
 	if (!buf) {
+        //一次性清空8个block
 		buf = malloc(fs->blocksize * STRIDE_LENGTH);
 		if (!buf) {
 			com_err("malloc", ENOMEM,
@@ -393,12 +398,14 @@ static errcode_t zero_blocks(ext2_filsys fs, blk_t blk, int num,
 		}
 		if (progress && j > next_update) {
 			next_update += num / 100;
+            //显示进度
 			progress_update(progress, blk);
 		}
 	}
 	return 0;
 }	
 
+//清空inode table所在的block
 static void write_inode_tables(ext2_filsys fs)
 {
 	errcode_t	retval;
@@ -419,6 +426,7 @@ static void write_inode_tables(ext2_filsys fs)
 		lazy_flag = 1;
 
 	for (i = 0; i < fs->group_desc_count; i++) {
+        //动态输出当前处理的进度
 		progress_update(&progress, i);
 		
 		blk = fs->group_desc[i].bg_inode_table;
@@ -426,6 +434,7 @@ static void write_inode_tables(ext2_filsys fs)
 
 		if (!(lazy_flag &&
 		      (fs->group_desc[i].bg_flags & EXT2_BG_INODE_UNINIT))) {
+            //清空inode table所在的block
 			retval = zero_blocks(fs, blk, num, 0, &blk, &num);
 			if (retval) {
 				fprintf(stderr, _("\nCould not write %d "
@@ -441,6 +450,7 @@ static void write_inode_tables(ext2_filsys fs)
 				sync();
 		}
 	}
+    //清空zero_blocks所用的buf
 	zero_blocks(0, 0, 0, 0, 0, 0);
 	progress_close(&progress);
 }
@@ -460,6 +470,10 @@ static void setup_lazy_bg(ext2_filsys fs)
 				continue;
 			if (bg->bg_free_inodes_count ==
 			    sb->s_inodes_per_group) {
+                /* 
+                 * 如果一个group的inode还没被初始化,这个group的free inode只能设置为0,
+                 * 并且fs中可用的inode不能包含这个group中的inode
+                 */
 				bg->bg_free_inodes_count = 0;
 				bg->bg_flags |= EXT2_BG_INODE_UNINIT;
 				sb->s_free_inodes_count -= 
@@ -467,6 +481,10 @@ static void setup_lazy_bg(ext2_filsys fs)
 			}
 			blks = ext2fs_super_and_bgd_loc(fs, i, 0, 0, 0, 0);
 			if (bg->bg_free_blocks_count == blks) {
+                /* 
+                 * 如果一个group的block还没被初始化,这个group的free block只能设置为0,
+                 * 并且fs中可用的block不能包含这个group中的block
+                 */
 				bg->bg_free_blocks_count = 0;
 				bg->bg_flags |= EXT2_BG_BLOCK_UNINIT;
 				sb->s_free_blocks_count -= blks;
@@ -487,6 +505,7 @@ static void create_root_dir(ext2_filsys fs)
 		exit(1);
 	}
 	if (geteuid()) {
+        //如果文件系统的创建者不是root
 		retval = ext2fs_read_inode(fs, EXT2_ROOT_INO, &inode);
 		if (retval) {
 			com_err("ext2fs_read_inode", retval,
@@ -514,7 +533,7 @@ static void create_lost_and_found(ext2_filsys fs)
 	int			lpf_size = 0;
 
 	fs->umask = 077;
-	retval = ext2fs_mkdir(fs, EXT2_ROOT_INO, 0, name);
+    retval = ext2fs_mkdir(fs, EXT2_ROOT_INO, 0, name);
 	if (retval) {
 		com_err("ext2fs_mkdir", retval,
 			_("while creating /lost+found"));
@@ -523,14 +542,18 @@ static void create_lost_and_found(ext2_filsys fs)
 
 	retval = ext2fs_lookup(fs, EXT2_ROOT_INO, name, strlen(name), 0, &ino);
 	if (retval) {
+        //没有在根目录下找到lost+found目录
 		com_err("ext2_lookup", retval,
 			_("while looking up /lost+found"));
 		exit(1);
 	}
-	
+
 	for (i=1; i < EXT2_NDIR_BLOCKS; i++) {
+        //遍历直接索引
 		if ((lpf_size += fs->blocksize) >= 16*1024)
+            //分配大小不能超过16k
 			break;
+        //这就是为什么lost+found这个目录的大小超过1个block的原因
 		retval = ext2fs_expand_dir(fs, ino);
 		if (retval) {
 			com_err("ext2fs_expand_dir", retval,
@@ -556,14 +579,19 @@ static void create_bad_block_inode(ext2_filsys fs, badblocks_list bb_list)
 
 }
 
+//保留第3(因为第2个被root目录使用)到第一个能使用的inode之间的inode(一般情况是11)
 static void reserve_inodes(ext2_filsys fs)
 {
 	ext2_ino_t	i;
 	int		group;
 
 	for (i = EXT2_ROOT_INO + 1; i < EXT2_FIRST_INODE(fs->super); i++) {
+        /*
+         * 其中第2个被root使用,第11个被/lost+found使用
+        */
 		ext2fs_mark_inode_bitmap(fs->inode_map, i);
 		group = ext2fs_group_of_ino(fs, i);
+        //减少sb和group中free inode count
 		fs->group_desc[group].bg_free_inodes_count--;
 		fs->super->s_free_inodes_count--;
 	}
@@ -1663,6 +1691,7 @@ int main (int argc, char *argv[])
 		blk_t ret_blk;
 
 #ifdef ZAP_BOOTBLOCK
+//清除分区中的boot区域
 		zap_sector(fs, 0, 2);
 #endif
 
@@ -1671,10 +1700,12 @@ int main (int argc, char *argv[])
 		 * of the device.  This will also verify that the device is
 		 * as large as we think.  Be careful with very small devices.
 		 */
+        //最后一个chunk的block位置
 		start = (blocks & ~(rsv - 1));
 		if (start > rsv)
 			start -= rsv;
 		if (start > 0)
+            //将device中最后一个chunk的内容清除
 			retval = zero_blocks(fs, start, blocks - start,
 					     NULL, &ret_blk, NULL);
 

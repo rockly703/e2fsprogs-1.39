@@ -20,10 +20,14 @@
 
 struct expand_dir_struct {
 	int		done;
+	//扩展目录大小时新分配的block个数
 	int		newblocks;
 	errcode_t	err;
 };
 
+/*
+ * blocknr:数据块索引
+*/
 static int expand_dir_proc(ext2_filsys	fs,
 			   blk_t	*blocknr,
 			   e2_blkcnt_t	blockcnt,
@@ -70,6 +74,7 @@ static int expand_dir_proc(ext2_filsys	fs,
 	ext2fs_free_mem(&block);
 	*blocknr = new_blk;
 	ext2fs_block_alloc_stats(fs, new_blk, +1);
+    //expand一次,增加一个block
 	es->newblocks++;
 
 	if (es->done)
@@ -115,9 +120,12 @@ errcode_t ext2fs_expand_dir(ext2_filsys fs, ext2_ino_t dir)
 	if (retval)
 		return retval;
 	
+	//目录大小增加blocksize
 	inode.i_size += fs->blocksize;
+	//目录占用的block数量增加
 	inode.i_blocks += (fs->blocksize / 512) * es.newblocks;
 
+	//回写inode
 	retval = ext2fs_write_inode(fs, dir, &inode);
 	if (retval)
 		return retval;

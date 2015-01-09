@@ -32,12 +32,17 @@
  *
  * Should have a special policy for directories.
  */
+ /*
+  * 新创建的ret从dir所在的group的第一个inode开始搜索空闲的inode,这样,大部分的子目录与其父目录
+  * 都会在同一个组中
+ */
 errcode_t ext2fs_new_inode(ext2_filsys fs, ext2_ino_t dir, 
 			   int mode EXT2FS_ATTR((unused)),
 			   ext2fs_inode_bitmap map, ext2_ino_t *ret)
 {
 	ext2_ino_t	dir_group = 0;
 	ext2_ino_t	i;
+    //dir所在的group的第一个inode
 	ext2_ino_t	start_inode;
 
 	EXT2_CHECK_MAGIC(fs, EXT2_ET_MAGIC_EXT2FS_FILSYS);
@@ -47,16 +52,18 @@ errcode_t ext2fs_new_inode(ext2_filsys fs, ext2_ino_t dir,
 	if (!map)
 		return EXT2_ET_NO_INODE_BITMAP;
 	
-	if (dir > 0) 
+	if (dir > 0)
 		dir_group = (dir - 1) / EXT2_INODES_PER_GROUP(fs->super);
 
 	start_inode = (dir_group * EXT2_INODES_PER_GROUP(fs->super)) + 1;
 	if (start_inode < EXT2_FIRST_INODE(fs->super))
+        //一般来说,如果inode no < 11, 首先从第11个inode开始分配
 		start_inode = EXT2_FIRST_INODE(fs->super);
 	i = start_inode;
 
 	do {
 		if (!ext2fs_fast_test_inode_bitmap(map, i))
+            //在inode bitmap中的第i位空闲
 			break;
 		i++;
 		if (i > fs->super->s_inodes_count)
@@ -85,10 +92,12 @@ errcode_t ext2fs_new_block(ext2_filsys fs, blk_t goal,
 	if (!map)
 		return EXT2_ET_NO_BLOCK_BITMAP;
 	if (!goal || (goal >= fs->super->s_blocks_count))
+        //如果goal为0或者超过s_blocks_count,就使用第一个能用的block
 		goal = fs->super->s_first_data_block;
 	i = goal;
 	do {
 		if (!ext2fs_fast_test_block_bitmap(map, i)) {
+            //如果map中的第i位空闲
 			*ret = i;
 			return 0;
 		}
@@ -163,6 +172,7 @@ errcode_t ext2fs_get_free_blocks(ext2_filsys fs, blk_t start, blk_t finish,
 		if (b+num-1 > fs->super->s_blocks_count)
 			b = fs->super->s_first_data_block;
 		if (ext2fs_fast_test_block_bitmap_range(map, b, num)) {
+            //如果从b开始的num位都是free的,就返回0
 			*ret = b;
 			return 0;
 		}

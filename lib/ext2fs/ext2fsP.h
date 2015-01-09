@@ -45,8 +45,10 @@ struct ext2_struct_dblist {
  * For directory iterators
  */
 struct dir_context {
+	//目录项的inode no
 	ext2_ino_t		dir;
 	int		flags;
+	//含有目录项的数据块的全部数据
 	char		*buf;
 	int (*func)(ext2_ino_t	dir,
 		    int	entry,
@@ -63,9 +65,13 @@ struct dir_context {
  * Inode cache structure
  */
 struct ext2_inode_cache {
+	//inode所在的block
 	void *				buffer;
+	//inode所在的block no
 	blk_t				buffer_blk;
+	//cache数组中上次保留inode的cache
 	int				cache_last;
+	//cache数组中cache的个数
 	int				cache_size;
 	int				refcount;
 	struct ext2_inode_cache_ent	*cache;

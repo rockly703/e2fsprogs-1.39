@@ -526,6 +526,7 @@ errcode_t ext2fs_read_inode_full(ext2_filsys fs, ext2_ino_t ino,
 	if (bufsize == sizeof(struct ext2_inode)) {
 		/* only old good inode can be retrieve from the cache */
 		for (i=0; i < fs->icache->cache_size; i++) {
+            //在cache中搜索inode
 			if (fs->icache->cache[i].ino == ino) {
 				*inode = fs->icache->cache[i].inode;
 				return 0;
@@ -556,6 +557,7 @@ errcode_t ext2fs_read_inode_full(ext2_filsys fs, ext2_ino_t ino,
 
 	length = EXT2_INODE_SIZE(fs->super);
 	if (bufsize < length)
+        //长度取bufsize和length中最小值
 		length = bufsize;
 
 	ptr = (char *) inode;
@@ -645,6 +647,7 @@ errcode_t ext2fs_write_inode_full(ext2_filsys fs, ext2_ino_t ino,
 
 	length = bufsize;
 	if (length < EXT2_INODE_SIZE(fs->super))
+        //数据最小不能小于inode size
 		length = EXT2_INODE_SIZE(fs->super);
 
 	if (length > (int) sizeof(struct ext2_inode_large)) {
@@ -652,7 +655,8 @@ errcode_t ext2fs_write_inode_full(ext2_filsys fs, ext2_ino_t ino,
 		if (!w_inode)
 			return ENOMEM;
 	} else
-		w_inode = &temp_inode;
+        //取地址,避免malloc分配
+        w_inode = &temp_inode;
 	memset(w_inode, 0, length);
 
 #ifdef EXT2FS_ENABLE_SWAPFS
@@ -665,18 +669,25 @@ errcode_t ext2fs_write_inode_full(ext2_filsys fs, ext2_ino_t ino,
 #endif
 		memcpy(w_inode, inode, bufsize);
 	
+    //确定inode在哪个group上
 	group = (ino - 1) / EXT2_INODES_PER_GROUP(fs->super);
+    //确定inode在组内的偏移
 	offset = ((ino - 1) % EXT2_INODES_PER_GROUP(fs->super)) *
 		EXT2_INODE_SIZE(fs->super);
+    //inode在其所属的group中的inode table中的的第几个block上
 	block = offset >> EXT2_BLOCK_SIZE_BITS(fs->super);
 	if (!fs->group_desc[(unsigned) group].bg_inode_table)
+        //如果inode table不存在
 		return EXT2_ET_MISSING_INODE_TABLE;
+    //找到inode所属的block
 	block_nr = fs->group_desc[(unsigned) group].bg_inode_table + block;
 
+    //inode在block内的位置
 	offset &= (EXT2_BLOCK_SIZE(fs->super) - 1);
 
 	length = EXT2_INODE_SIZE(fs->super);
 	if (length > bufsize)
+        //取length和bufsize的最小值
 		length = bufsize;
 
 	ptr = (char *) w_inode;
@@ -687,6 +698,7 @@ errcode_t ext2fs_write_inode_full(ext2_filsys fs, ext2_ino_t ino,
 			clen = fs->blocksize - offset;
 
 		if (fs->icache->buffer_blk != block_nr) {
+            //读出inode所在的block全部数据
 			retval = io_channel_read_blk(fs->io, block_nr, 1,
 						     fs->icache->buffer);
 			if (retval)
@@ -694,10 +706,11 @@ errcode_t ext2fs_write_inode_full(ext2_filsys fs, ext2_ino_t ino,
 			fs->icache->buffer_blk = block_nr;
 		}
 
-	
+        //将需要写入的inode数据拷贝到buffer中对应的位置
 		memcpy((char *) fs->icache->buffer + (unsigned) offset, 
 		       ptr, clen);
 
+        //写入整个block
 		retval = io_channel_write_blk(fs->io, block_nr, 1, 
 					      fs->icache->buffer);
 		if (retval)
@@ -712,6 +725,7 @@ errcode_t ext2fs_write_inode_full(ext2_filsys fs, ext2_ino_t ino,
 	fs->flags |= EXT2_FLAG_CHANGED;
 errout:
 	if (w_inode && w_inode != &temp_inode)
+        //w_inode如果是通过malloc分配的空间
 		free(w_inode);
 	return retval;
 }
@@ -735,9 +749,11 @@ errcode_t ext2fs_write_new_inode(ext2_filsys fs, ext2_ino_t ino,
 	struct ext2_inode_large	*large_inode;
 
 	if (size == sizeof(struct ext2_inode))
+        //128个字节的inode
 		return ext2fs_write_inode_full(fs, ino, inode,
 					       sizeof(struct ext2_inode));
 
+    //大小大于128字节的inode
 	buf = malloc(size);
 	if (!buf)
 		return ENOMEM;
@@ -752,7 +768,7 @@ errcode_t ext2fs_write_new_inode(ext2_filsys fs, ext2_ino_t ino,
 	return ext2fs_write_inode_full(fs, ino, buf, size);
 }
 
- 
+//获取inode中存储文件的数据块
 errcode_t ext2fs_get_blocks(ext2_filsys fs, ext2_ino_t ino, blk_t *blocks)
 {
 	struct ext2_inode	inode;
@@ -794,6 +810,7 @@ errcode_t ext2fs_check_directory(ext2_filsys fs, ext2_ino_t ino)
 	retval = ext2fs_read_inode(fs, ino, &inode);
 	if (retval)
 		return retval;
+    //判断读出来的inode代表的是不是一个目录
 	if (!LINUX_S_ISDIR(inode.i_mode))
 		return EXT2_ET_NO_DIRECTORY;
 	return 0;

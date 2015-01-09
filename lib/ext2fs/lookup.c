@@ -21,7 +21,9 @@
 struct lookup_struct  {
 	const char	*name;
 	int		len;
+    //目录项的inode
 	ext2_ino_t	*inode;
+    //1表查找成功,0表查找失败
 	int		found;
 };	
 
@@ -39,6 +41,7 @@ static int lookup_proc(struct ext2_dir_entry *dirent,
 	if (ls->len != (dirent->name_len & 0xFF))
 		return 0;
 	if (strncmp(ls->name, dirent->name, (dirent->name_len & 0xFF)))
+        //lookup_struct中的name和目录项的name不匹配
 		return 0;
 	*ls->inode = dirent->inode;
 	ls->found++;

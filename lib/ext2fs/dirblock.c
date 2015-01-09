@@ -37,7 +37,9 @@ errcode_t ext2fs_read_dir_block2(ext2_filsys fs, blk_t block,
 #endif
 	p = (char *) buf;
 	end = (char *) buf + fs->blocksize;
+	//正常情况下,struct ext2_dir_entry肯定要大于8
 	while (p < end-8) {
+		//遍历数据块中所有的目录项
 		dirent = (struct ext2_dir_entry *) p;
 #ifdef EXT2FS_ENABLE_SWAPFS
 		if (do_swap) {
@@ -47,16 +49,20 @@ errcode_t ext2fs_read_dir_block2(ext2_filsys fs, blk_t block,
 		}
 #endif
 		name_len = dirent->name_len;
+#if 0
 #ifdef WORDS_BIGENDIAN
 		if (flags & EXT2_DIRBLOCK_V2_STRUCT)
 			dirent->name_len = ext2fs_swab16(dirent->name_len);
 #endif
+#endif
 		rec_len = dirent->rec_len;
 		if ((rec_len < 8) || (rec_len % 4)) {
+			//如果ext2_dir_entry小于8,或者ext2_dir_entry大小没有以4对齐
 			rec_len = 8;
 			retval = EXT2_ET_DIR_CORRUPTED;
 		}
 		if (((name_len & 0xFF) + 8) > dirent->rec_len)
+			//如果目录名大于目录项的长度
 			retval = EXT2_ET_DIR_CORRUPTED;
 		p += rec_len;
 	}
@@ -108,9 +114,11 @@ errcode_t ext2fs_write_dir_block2(ext2_filsys fs, blk_t block,
 			dirent->rec_len = ext2fs_swab16(dirent->rec_len);
 			dirent->name_len = ext2fs_swab16(dirent->name_len);
 		}
-#ifdef WORDS_BIGENDIAN 
+#if 0
+#ifdef WORDS_BIGENDIAN
 		if (flags & EXT2_DIRBLOCK_V2_STRUCT)
 			dirent->name_len = ext2fs_swab16(dirent->name_len);
+#endif
 #endif
 	}
  	retval = io_channel_write_blk(fs->io, block, 1, buf);

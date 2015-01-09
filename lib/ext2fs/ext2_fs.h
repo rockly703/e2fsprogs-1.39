@@ -284,6 +284,7 @@ struct ext2_inode {
 	__u32	i_dtime;	/* Deletion Time */
 	__u16	i_gid;		/* Low 16 bits of Group Id */
 	__u16	i_links_count;	/* Links count */
+    //文件占用block个数(以512为单位)
 	__u32	i_blocks;	/* Blocks count */
 	__u32	i_flags;	/* File flags */
 	union {
@@ -577,6 +578,10 @@ struct ext2_super_block {
 #define EXT2_FEATURE_COMPAT_EXT_ATTR		0x0008
 #define EXT2_FEATURE_COMPAT_RESIZE_INODE	0x0010
 #define EXT2_FEATURE_COMPAT_DIR_INDEX		0x0020
+/* 
+ * 如果块组中的相应标志已设置，那么块组中的inode位图和inode表将不被初始化。这样可以减少mkfs时间， 
+ * 如果开启了块组描述符校验和功能，甚至连块组都可以不初始化。 
+*/ 
 #define EXT2_FEATURE_COMPAT_LAZY_BG		0x0040
 
 #define EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER	0x0001
@@ -625,7 +630,20 @@ struct ext2_super_block {
 
 struct ext2_dir_entry {
 	__u32	inode;			/* Inode number */
+	/*
+	 *  record length, 即目录项的长度，此长度表示从当前的目录项的起始到下个目录项起始之间的长度。
+	 *  需要注意的是，目录项的长度必须以4字节对齐，并且一个目录项不能分别位于多个block上。如果在一个
+	 *  block上的剩余空间没办法放下一个目录项，这个目录项必须放到下一个block上。 并且前一个目录项
+	 *  的 rec_len需要做相应的调整。如果一个目录中的一个文件被删除了，前一个目录项必须修改rec_len,
+	 *  确保下个目录项是有有效的，如果不存在下个目录项，rec_len必须调整到当前block的结束位置。如果
+	 *  此目录中的第一个文件被删除 了，就需要创建一个空的目录项，调整rec_len，保证下个目录项有效，
+	 *  同样，如果不存在下个目录项rec_len必须调整到当前block的结束位置。
+	*/
 	__u16	rec_len;		/* Directory entry length */
+	/*
+	 * 文件名的长度，如果一个文件被重命名，并且文件名增加，超出了当前目录项容纳范围。
+	 * 这时候就需要重新分配目录项。新分配的目录项有可能会被分配到另一个block中
+	*/
 	__u16	name_len;		/* Name length */
 	char	name[EXT2_NAME_LEN];	/* File name */
 };
@@ -648,8 +666,10 @@ struct ext2_dir_entry_2 {
  * Ext2 directory file types.  Only the low 3 bits are used.  The
  * other bits are reserved for now.
  */
+//目录项中记录的文件类型
 #define EXT2_FT_UNKNOWN		0
 #define EXT2_FT_REG_FILE	1
+//目录项表示的是一个目录
 #define EXT2_FT_DIR		2
 #define EXT2_FT_CHRDEV		3
 #define EXT2_FT_BLKDEV		4
@@ -666,6 +686,7 @@ struct ext2_dir_entry_2 {
  */
 #define EXT2_DIR_PAD			4
 #define EXT2_DIR_ROUND			(EXT2_DIR_PAD - 1)
+//ext2_dir_entry必须以4对齐
 #define EXT2_DIR_REC_LEN(name_len)	(((name_len) + 8 + EXT2_DIR_ROUND) & \
 					 ~EXT2_DIR_ROUND)
 

@@ -39,6 +39,7 @@ errcode_t ext2fs_new_dir_block(ext2_filsys fs, ext2_ino_t dir_ino,
 	retval = ext2fs_get_mem(fs->blocksize, &buf);
 	if (retval)
 		return retval;
+	//清空目录项的block
 	memset(buf, 0, fs->blocksize);
 	dir = (struct ext2_dir_entry *) buf;
 	dir->rec_len = fs->blocksize;
@@ -51,6 +52,10 @@ errcode_t ext2fs_new_dir_block(ext2_filsys fs, ext2_ino_t dir_ino,
 		 * Set up entry for '.'
 		 */
 		dir->inode = dir_ino;
+		/*
+		 * ext2_dir_entry_2和ext2_dir_entry的区别在于前者将后者name_len这个成员一分
+		 * 为2, name_len的低8位还是保存文件名,高8位则用于保存文件类型
+		*/
 		dir->name_len = 1 | filetype;
 		dir->name[0] = '.';
 		rec_len = dir->rec_len - EXT2_DIR_REC_LEN(1);

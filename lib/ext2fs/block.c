@@ -26,16 +26,23 @@ struct block_context {
 		    blk_t	ref_blk,
 		    int		ref_offset,
 		    void	*priv_data);
+    //目录或者文件占用的block个数
 	e2_blkcnt_t	bcount;
 	int		bsize;
 	int		flags;
 	errcode_t	errcode;
+	//一级间接数据块buf,大小为1个block
 	char	*ind_buf;
+	//二级间接数据块buf,大小为1个block
 	char	*dind_buf;
+	//三级间接数据块buf,大小为1个block
 	char	*tind_buf;
 	void	*priv_data;
 };
 
+/*
+ * ind_block:一级间接索引的地址,解引用后可以得到一级间接索引块的block no
+*/
 static int block_iterate_ind(blk_t *ind_block, blk_t ref_block,
 			     int ref_offset, struct block_context *ctx)
 {
@@ -262,7 +269,7 @@ static int block_iterate_tind(blk_t *tind_block, blk_t ref_block,
 	
 	return ret;
 }
-	
+
 errcode_t ext2fs_block_iterate2(ext2_filsys fs,
 				ext2_ino_t ino,
 				int	flags,
@@ -303,6 +310,7 @@ errcode_t ext2fs_block_iterate2(ext2_filsys fs,
 	if (retval)
 		return retval;
 
+    //一个block中能够存多少个索引
 	limit = fs->blocksize >> 2;
 
 	ctx.fs = fs;
@@ -313,6 +321,7 @@ errcode_t ext2fs_block_iterate2(ext2_filsys fs,
 	if (block_buf) {
 		ctx.ind_buf = block_buf;
 	} else {
+        //为一级/二级/三级间接索引块分配空间
 		retval = ext2fs_get_mem(fs->blocksize * 3, &ctx.ind_buf);
 		if (retval)
 			return retval;
@@ -323,6 +332,7 @@ errcode_t ext2fs_block_iterate2(ext2_filsys fs,
 	/*
 	 * Iterate over the HURD translator block (if present)
 	 */
+#if 0
 	if ((fs->super->s_creator_os == EXT2_OS_HURD) &&
 	    !(flags & BLOCK_FLAG_DATA_ONLY)) {
 		ctx.errcode = ext2fs_read_inode(fs, ino, &inode);
@@ -338,12 +348,20 @@ errcode_t ext2fs_block_iterate2(ext2_filsys fs,
 				goto abort_exit;
 		}
 	}
+#endif
 	
 	/*
 	 * Iterate over normal data blocks
 	 */
 	for (i = 0; i < EXT2_NDIR_BLOCKS ; i++, ctx.bcount++) {
+        //遍历直接数据块
 		if (blocks[i] || (flags & BLOCK_FLAG_APPEND)) {
+            /* 
+             * 当blocks[i]不等于0或者置位flags中的BLOCK_FLAG_APPEND才会执行下面的操作.
+             * 一般情况遍历,如果blocks[i] == 0,表示这个索引的block无效,当然不需对block操作.
+             * 但是如果要expand一个目录时,需要分配block,然后修改inode的索引,这时候就要置位
+             * BLOCK_FLAG_APPEND才能进来
+             */
 			ret |= (*ctx.func)(fs, &blocks[i],
 					    ctx.bcount, 0, i, priv_data);
 			if (ret & BLOCK_ABORT)
@@ -373,6 +391,7 @@ errcode_t ext2fs_block_iterate2(ext2_filsys fs,
 
 abort_exit:
 	if (ret & BLOCK_CHANGED) {
+        //当inode指向的数据块的索引发生变化,就需要重写inode
 		if (!got_inode) {
 			retval = ext2fs_read_inode(fs, ino, &inode);
 			if (retval)

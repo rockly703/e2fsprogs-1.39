@@ -24,9 +24,12 @@ void ext2fs_inode_alloc_stats2(ext2_filsys fs, ext2_ino_t ino,
 		ext2fs_mark_inode_bitmap(fs->inode_map, ino);
 	else
 		ext2fs_unmark_inode_bitmap(fs->inode_map, ino);
+	//group中空闲的inode减少inuse个
 	fs->group_desc[group].bg_free_inodes_count -= inuse;
 	if (isdir)
+		//如果当前inode代表一个目录,group中用于统计目录的计数增加inuse个
 		fs->group_desc[group].bg_used_dirs_count += inuse;
+	//fs中空闲的inode减少inuse个
 	fs->super->s_free_inodes_count -= inuse;
 	ext2fs_mark_super_dirty(fs);
 	ext2fs_mark_ib_dirty(fs);
@@ -45,7 +48,9 @@ void ext2fs_block_alloc_stats(ext2_filsys fs, blk_t blk, int inuse)
 		ext2fs_mark_block_bitmap(fs->block_map, blk);
 	else
 		ext2fs_unmark_block_bitmap(fs->block_map, blk);
+	//group中空闲的block减少inuse个
 	fs->group_desc[group].bg_free_blocks_count -= inuse;
+	//fs中空闲的block减少inuse个
 	fs->super->s_free_blocks_count -= inuse;
 	ext2fs_mark_super_dirty(fs);
 	ext2fs_mark_bb_dirty(fs);

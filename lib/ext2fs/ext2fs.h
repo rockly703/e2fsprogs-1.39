@@ -262,6 +262,7 @@ struct struct_ext2_filsys {
  * Return flags for the block iterator functions
  */
 #define BLOCK_CHANGED	1
+//数据块查询需要退出
 #define BLOCK_ABORT	2
 #define BLOCK_ERROR	4
 
@@ -317,7 +318,9 @@ struct struct_ext2_filsys {
 /*
  * Return flags for the directory iterator functions
  */
+//目录项成员改变,需要回写
 #define DIRENT_CHANGED	1
+//目录项查询需要退出
 #define DIRENT_ABORT	2
 #define DIRENT_ERROR	3
 
@@ -326,11 +329,16 @@ struct struct_ext2_filsys {
  */
 
 #define DIRENT_FLAG_INCLUDE_EMPTY	1
+//遍历目录项的时候包含那些被删除的目录项
 #define DIRENT_FLAG_INCLUDE_REMOVED	2
 
+//这个目录项代表'.'
 #define DIRENT_DOT_FILE		1
+//这个目录项代表'..'
 #define DIRENT_DOT_DOT_FILE	2
+//这个目录项是除'.','..'的文件或者目录
 #define DIRENT_OTHER_FILE	3
+//当前目录项已经被删除
 #define DIRENT_DELETED_FILE	4
 
 /*
@@ -1120,6 +1128,7 @@ _INLINE_ int ext2fs_test_bb_dirty(ext2_filsys fs)
 /*
  * Return the group # of a block
  */
+//计算blk属于那个group
 _INLINE_ int ext2fs_group_of_blk(ext2_filsys fs, blk_t blk)
 {
 	return (blk - fs->super->s_first_data_block) /

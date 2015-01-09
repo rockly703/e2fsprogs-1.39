@@ -23,10 +23,17 @@ struct link_struct  {
 	int		namelen;
 	ext2_ino_t	inode;
 	int		flags;
+	//完成标志
 	int		done;
 	struct ext2_super_block *sb;
 };	
 
+/*
+ * 对于增加一个目录这种操作来说,需要进行如下步骤:
+ * 1.找到一个目录项,这个目录项的rec_len除了能容纳本身,还可以容纳需要新建的目录项
+ * 2.改变这个这个目录项的rec_len,使其能够刚好容纳本身
+ * 3.利用腾出来的空间新建目录项
+*/
 static int link_proc(struct ext2_dir_entry *dirent,
 		     int	offset,
 		     int	blocksize,
@@ -34,6 +41,7 @@ static int link_proc(struct ext2_dir_entry *dirent,
 		     void	*priv_data)
 {
 	struct link_struct *ls = (struct link_struct *) priv_data;
+    //下一个目录项
 	struct ext2_dir_entry *next;
 	int rec_len, min_rec_len;
 	int ret = 0;
@@ -48,7 +56,12 @@ static int link_proc(struct ext2_dir_entry *dirent,
 	if ((offset + dirent->rec_len < blocksize - 8) &&
 	    (next->inode == 0) &&
 	    (offset + dirent->rec_len + next->rec_len <= blocksize)) {
-		dirent->rec_len += next->rec_len;
+        /*
+         * 当前目录项的偏移加上当前目录项的长度小于blocksize - 8,
+         * 也就是下一个目录项的长度合法(大于8字节)并且下个目录项的inode等于0
+         * (表示这个目录项未使用).这时当前目录项的长度需要加上下个目录项的长度
+         */
+        dirent->rec_len += next->rec_len;
 		ret = DIRENT_CHANGED;
 	}
 
@@ -58,11 +71,18 @@ static int link_proc(struct ext2_dir_entry *dirent,
 	 * truncate it and return.
 	 */
 	if (dirent->inode) {
+        //当前目录项正在使用
 		min_rec_len = EXT2_DIR_REC_LEN(dirent->name_len & 0xFF);
 		if (dirent->rec_len < (min_rec_len + rec_len))
+            /* 
+             * 如果最小长度加上将要分配的目录项的长度小于这个目录项的长度,说明这个目录项可以
+             * 拆分,给新分配的目录项腾出空间
+             */
 			return ret;
 		rec_len = dirent->rec_len - min_rec_len;
+        //改变当前目录项的长度
 		dirent->rec_len = min_rec_len;
+        //使next指向将要分配的目录项的起始位置
 		next = (struct ext2_dir_entry *) (buf + offset +
 						  dirent->rec_len);
 		next->inode = 0;
@@ -75,7 +95,9 @@ static int link_proc(struct ext2_dir_entry *dirent,
 	 * If we get this far, then the directory entry is not used.
 	 * See if we can fit the request entry in.  If so, do it.
 	 */
+    //如果当前目录项未被使用,就使用当前目录项作为新分配的目录项
 	if (dirent->rec_len < rec_len)
+        //当前目录项的长度小于将要分配的目录项的长度
 		return ret;
 	dirent->inode = ls->inode;
 	dirent->name_len = ls->namelen;
@@ -113,6 +135,10 @@ errcode_t ext2fs_link(ext2_filsys fs, ext2_ino_t dir, const char *name,
 	ls.done = 0;
 	ls.sb = fs->super;
 
+	/* 
+	 * 在inode为dir的目录下遍历名称为name的目录项,并调用link_proc建立
+	 * (之前必须通过ext2_lookup检查,inode为dir的目录下是否有名称为name的目录项)
+	 */
 	retval = ext2fs_dir_iterate(fs, dir, DIRENT_FLAG_INCLUDE_EMPTY,
 				    0, link_proc, &ls);
 	if (retval)

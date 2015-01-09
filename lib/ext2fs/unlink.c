@@ -22,6 +22,7 @@ struct link_struct  {
 	const char	*name;
 	int		namelen;
 	ext2_ino_t	inode;
+    //目录项的类型
 	int		flags;
 	struct ext2_dir_entry *prev;
 	int		done;
