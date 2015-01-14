@@ -747,7 +747,7 @@ static void show_stats(ext2_filsys fs)
 		if (i != 1)
             //第一个元素不打印','
 			printf(", ");
-        //+2是因为','和' '各占用一为
+        //+2是因为','和' '各占用一位
 		need = int_log10(group_block) + 2;
 		if (need > col_left) {
             //一行打印完毕
@@ -1733,7 +1733,7 @@ int main (int argc, char *argv[])
 
 	if (journal_device) {
 		ext2_filsys	jfs;
-		
+
 		if (!force)
 			check_plausibility(journal_device); 
 		check_mount(journal_device, force, _("journal"));

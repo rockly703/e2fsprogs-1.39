@@ -63,6 +63,10 @@ int ext2fs_super_and_bgd_loc(ext2_filsys fs,
      * new_desc_blk:开启META_BG后,gdt的位置
 	 */
 	blk_t	group_block, super_blk = 0, old_desc_blk = 0, new_desc_blk = 0;
+    /*
+     * meta_bg:记录当前正在处理meta group的下标
+     * meta_bg_size:一个block中能够容纳ext2_group_desc的数量
+    */
 	unsigned int meta_bg, meta_bg_size;
 	int	numblocks, has_super;
 	//组描述符及保留的组描述符占用的block数量
@@ -100,7 +104,6 @@ int ext2fs_super_and_bgd_loc(ext2_filsys fs,
 	}
 	//meta group中group的数量只能等于一个block中能够容纳ext2_group_desc的数量
 	meta_bg_size = (fs->blocksize / sizeof (struct ext2_group_desc));
-	//meta_bg用于记录当前正在处理meta group的下标
 	meta_bg = group / meta_bg_size;
 
 	if (!(fs->super->s_feature_incompat & EXT2_FEATURE_INCOMPAT_META_BG) ||
@@ -117,12 +120,9 @@ int ext2fs_super_and_bgd_loc(ext2_filsys fs,
 		if (((group % meta_bg_size) == 0) ||
 		    ((group % meta_bg_size) == 1) ||
 		    ((group % meta_bg_size) == (meta_bg_size-1))) {
-			//一个meta group中只有在meta group中的第0,1及最后一个group才可能有sb
+			//一个meta group中只有在meta group中的第0,1及最后一个group才会有group descriptor
 			if (has_super)
 				has_super = 1;
-            /* 
-             * 如果开启了META_BG,并且在meta group中的第0,1及最后一个group,一定会有gdt
-             */
 			new_desc_blk = group_block + has_super;
 			/* 
 			 * 如果开启了META_BG,并且在meta group中的第0,1及最后一个group,在sb后接的就不是
@@ -143,7 +143,7 @@ int ext2fs_super_and_bgd_loc(ext2_filsys fs,
 	if (ret_new_desc_blk)
 		*ret_new_desc_blk = new_desc_blk;
 	if (ret_meta_bg)
-		*ret_meta_bg = meta_bg;
+        *ret_meta_bg = meta_bg;
 	return (numblocks);
 }
 
@@ -288,6 +288,7 @@ errcode_t ext2fs_flush(ext2_filsys fs)
 	 * already been backed up earlier, and will be restored after
 	 * we write out the backup superblocks.)
 	 */
+    //将备份的sb的fs->super标记成无效状态
 	fs->super->s_state &= ~EXT2_VALID_FS;
 #ifdef EXT2FS_ENABLE_SWAPFS
 	if (fs->flags & EXT2_FLAG_SWAP_BYTES) {
@@ -323,21 +324,25 @@ errcode_t ext2fs_flush(ext2_filsys fs)
 					 &new_desc_blk, &meta_bg);
 
 		if (!(fs->flags & EXT2_FLAG_MASTER_SB_ONLY) &&i && super_blk) {
+            //如果没有置位EXT2_FLAG_MASTER_SB_ONLY,而且当前不是第0组,并且sb不在block 0的位置
 			retval = write_backup_super(fs, i, super_blk,
 						    super_shadow);
 			if (retval)
 				goto errout;
 		}
 		if (fs->flags & EXT2_FLAG_SUPER_ONLY)
+            //只操作sb,不操作group descriptor
 			continue;
 		if ((old_desc_blk) && 
 		    (!(fs->flags & EXT2_FLAG_MASTER_SB_ONLY) || (i == 0))) {
+            //如果desc_blk不在block 0,没有置位EXT2_FLAG_MASTER_SB_ONLY,并且不是第0组
 			retval = io_channel_write_blk(fs->io,
 			      old_desc_blk, old_desc_blocks, group_ptr);
 			if (retval)
 				goto errout;
 		}
 		if (new_desc_blk) {
+            //meta group特性中保存有group desc的group
 			retval = io_channel_write_blk(fs->io, new_desc_blk,
 				1, group_ptr + (meta_bg*fs->blocksize));
 			if (retval)
@@ -352,6 +357,7 @@ errcode_t ext2fs_flush(ext2_filsys fs)
 	 * drag in the bitmaps.c code.
 	 */
 	if (fs->write_bitmaps) {
+        //写入bitmap
 		retval = fs->write_bitmaps(fs);
 		if (retval)
 			goto errout;
@@ -367,6 +373,7 @@ write_primary_superblock_only:
 	 */
 
 	fs->super->s_block_group_nr = 0;
+    //写primary super block的时候使用进入extfs2_flush时的state
 	fs->super->s_state = fs_state;
 #ifdef EXT2FS_ENABLE_SWAPFS
 	if (fs->flags & EXT2_FLAG_SWAP_BYTES) {
@@ -380,8 +387,9 @@ write_primary_superblock_only:
 	if (retval)
 		goto errout;
 
+    //清除dirty标志
 	fs->flags &= ~EXT2_FLAG_DIRTY;
-
+    
 	retval = io_channel_flush(fs->io);
 errout:
 	fs->super->s_state = fs_state;

@@ -348,12 +348,12 @@ static errcode_t flush_cached_blocks(io_channel channel,
 	struct unix_cache	*cache;
 	errcode_t		retval, retval2;
 	int			i;
-	
+
 	retval2 = 0;
 	for (i=0, cache = data->cache; i < CACHE_SIZE; i++, cache++) {
 		if (!cache->in_use)
             continue;
-        
+
 		if (invalidate)
 			cache->in_use = 0;
 		
@@ -604,13 +604,13 @@ static errcode_t unix_write_blk(io_channel channel, unsigned long block,
 
 #ifdef NO_IO_CACHE
 	return raw_write_blk(channel, data, block, count, buf);
-#else	
+#else
 	/*
 	 * If we're doing an odd-sized write or a very large write,
 	 * flush out the cache completely and then do a direct write.
 	 */
 	if (count < 0 || count > WRITE_DIRECT_SIZE) {
-		if ((retval = flush_cached_blocks(channel, data, 1)))
+        if ((retval = flush_cached_blocks(channel, data, 1))) 
 			return retval;
 		return raw_write_blk(channel, data, block, count, buf);
 	}

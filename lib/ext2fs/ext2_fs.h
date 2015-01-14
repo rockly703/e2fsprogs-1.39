@@ -137,6 +137,7 @@ struct ext2_acl_entry	/* Access Control List Entry */
  */
 struct ext2_group_desc
 {
+    //block bitmapµÄÆðÊ¼block no
 	__u32	bg_block_bitmap;		/* Blocks bitmap block */
 	__u32	bg_inode_bitmap;		/* Inodes bitmap block */
 	__u32	bg_inode_table;		/* Inodes table block */

@@ -183,8 +183,10 @@ typedef struct ext2_file *ext2_file_t;
 #define EXT2_FLAG_SWAP_BYTES		0x40
 #define EXT2_FLAG_SWAP_BYTES_READ	0x80
 #define EXT2_FLAG_SWAP_BYTES_WRITE	0x100
+//只操作第一个sb
 #define EXT2_FLAG_MASTER_SB_ONLY	0x200
 #define EXT2_FLAG_FORCE			0x400
+//只操作sb
 #define EXT2_FLAG_SUPER_ONLY		0x800
 #define EXT2_FLAG_JOURNAL_DEV_OK	0x1000
 #define EXT2_FLAG_IMAGE_FILE		0x2000

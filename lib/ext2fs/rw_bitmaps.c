@@ -74,6 +74,7 @@ static errcode_t write_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 	block_bitmap = inode_bitmap = 0;
 	if (do_block) {
 		block_bitmap = fs->block_map->bitmap;
+		//block数量占用多少字节
 		block_nbytes = EXT2_BLOCKS_PER_GROUP(fs->super) / 8;
 		retval = ext2fs_get_mem(fs->blocksize, &block_buf);
 		if (retval)
@@ -98,24 +99,31 @@ static errcode_t write_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 		    EXT2_BG_BLOCK_UNINIT) 
 			goto skip_this_block_bitmap;
  
+		//block数量可能没有占满一个block
 		memcpy(block_buf, block_bitmap, block_nbytes);
 		if (i == fs->group_desc_count - 1) {
+			//处理最后一个group
 			/* Force bitmap padding for the last group */
 			nbits = ((fs->super->s_blocks_count
 				  - fs->super->s_first_data_block)
 				 % EXT2_BLOCKS_PER_GROUP(fs->super));
 			if (nbits)
+				//最后一个group的个数少于s_blocks_per_group
 				for (j = nbits; j < fs->blocksize * 8; j++)
+					//将bitmap中多于s_blocks_per_group的那部分全部置位
 					ext2fs_set_bit(j, block_buf);
 		}
 		blk = fs->group_desc[i].bg_block_bitmap;
 		if (blk) {
+#if 0
 #ifdef EXT2_BIG_ENDIAN_BITMAPS
 			if (!((fs->flags & EXT2_FLAG_SWAP_BYTES) ||
 			      (fs->flags & EXT2_FLAG_SWAP_BYTES_WRITE)))
 				ext2fs_swap_bitmap(fs, block_buf, 
 						   block_nbytes);
 #endif
+#endif
+			//写入block bitmap
 			retval = io_channel_write_blk(fs->io, blk, 1,
 						      block_buf);
 			if (retval)
@@ -151,10 +159,12 @@ static errcode_t write_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 
 	}
 	if (do_block) {
+		//block bitmap clean
 		fs->flags &= ~EXT2_FLAG_BB_DIRTY;
 		ext2fs_free_mem(&block_buf);
 	}
 	if (do_inode) {
+		//inode bitmap clean
 		fs->flags &= ~EXT2_FLAG_IB_DIRTY;
 		ext2fs_free_mem(&inode_buf);
 	}
@@ -319,6 +329,7 @@ errcode_t ext2fs_write_bitmaps(ext2_filsys fs)
 	int do_block = fs->block_map && ext2fs_test_bb_dirty(fs);
 
 	if (!do_inode && !do_block)
+		//当inode map和block bitmap都是clean的时候,就退出
 		return 0;
 
 	return write_bitmaps(fs, do_inode, do_block);
