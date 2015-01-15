@@ -299,6 +299,9 @@ static struct unix_cache *find_cached_block(struct unix_private_data *data,
 					    unsigned long block,
 					    struct unix_cache **eldest)
 {
+    /*
+     * oldest_cache记录队列中最早被使用的cache,这个cache将要被覆盖
+    */
 	struct unix_cache	*cache, *unused_cache, *oldest_cache;
 	int			i;
 	
@@ -306,18 +309,25 @@ static struct unix_cache *find_cached_block(struct unix_private_data *data,
 	for (i=0, cache = data->cache; i < CACHE_SIZE; i++, cache++) {
 		if (!cache->in_use) {
 			if (!unused_cache)
+                //找到未使用的cache
 				unused_cache = cache;
 			continue;
 		}
 		if (cache->block == block) {
+            /* 
+             * 如果cache中的block和参数block相同,cache->access_time
+             * 就使用自加后的data->access_time,表示cache将要再次被访问
+             */
 			cache->access_time = ++data->access_time;
 			return cache;
 		}
 		if (!oldest_cache ||
 		    (cache->access_time < oldest_cache->access_time))
+            //oldest_cache始终指向最早被使用的cache
 			oldest_cache = cache;
 	}
 	if (eldest)
+        //如果有未使用的cache优先返回unused_cache,否则返回队列中最早的cache
 		*eldest = (unused_cache) ? unused_cache : oldest_cache;
 	return 0;
 }
@@ -329,6 +339,7 @@ static void reuse_cache(io_channel channel, struct unix_private_data *data,
 		 struct unix_cache *cache, unsigned long block)
 {
 	if (cache->dirty && cache->in_use)
+        //将cache中的内容更新到磁盘上
 		raw_write_blk(channel, data, cache->block, 1, cache->buf);
 
 	cache->in_use = 1;
@@ -589,6 +600,7 @@ static errcode_t unix_read_blk(io_channel channel, unsigned long block,
 #endif /* NO_IO_CACHE */
 }
 
+//优先写入cache队列
 static errcode_t unix_write_blk(io_channel channel, unsigned long block,
 				int count, const void *buf)
 {
@@ -628,6 +640,7 @@ static errcode_t unix_write_blk(io_channel channel, unsigned long block,
 	while (count > 0) {
 		cache = find_cached_block(data, block, &reuse);
 		if (!cache) {
+            //如果没有找到block匹配的cache
 			cache = reuse;
 			reuse_cache(channel, data, cache, block);
 		}
