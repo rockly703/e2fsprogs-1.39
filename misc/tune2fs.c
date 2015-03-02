@@ -1,4 +1,4 @@
-/*
+﻿/*
  * tune2fs.c - Change the file system parameters on an ext2 file system
  *
  * Copyright (C) 1992, 1993, 1994  Remy Card <card@masi.ibp.fr>

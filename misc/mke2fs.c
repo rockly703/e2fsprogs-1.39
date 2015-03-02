@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * mke2fs.c - Make a ext2fs filesystem.
  * 
  * Copyright (C) 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
@@ -103,7 +103,7 @@ static void usage(void)
 	exit(1);
 }
 
-//È¡log2
+//å–log2
 static int int_log2(int arg)
 {
 	int	l = 0;
@@ -116,7 +116,7 @@ static int int_log2(int arg)
 	return l;
 }
 
-//10½øÖÆµÄargÓĞ¶àÉÙÎ»
+//10è¿›åˆ¶çš„argæœ‰å¤šå°‘ä½
 static int int_log10(unsigned int arg)
 {
 	int	l;
@@ -195,7 +195,7 @@ static void test_disk(ext2_filsys fs, badblocks_list *bb_list)
 		fs->device_name, fs->super->s_blocks_count);
 	if (verbose)
 		printf(_("Running command: %s\n"), buf);
-    //Ö´ĞĞbadblocks
+    //æ‰§è¡Œbadblocks
 	f = popen(buf, "r");
 	if (!f) {
 		com_err("popen", errno,
@@ -307,12 +307,12 @@ static void progress_init(struct progress_struct *progress,
 	 * Figure out how many digits we need
 	 */
 	i = int_log10(max);
-    //Õâ3¸ö'%'ÖĞ,Ç°Á½¸ö"%%",Êä³ö'%',µÚ3¸ö'%'ºÍ'd'±»iÌæ»»,Êä³ö¸ù¾İÊµ¼ÊµÄiÖµ¶ÔÆë
+    //è¿™3ä¸ª'%'ä¸­,å‰ä¸¤ä¸ª"%%",è¾“å‡º'%',ç¬¬3ä¸ª'%'å’Œ'd'è¢«iæ›¿æ¢,è¾“å‡ºæ ¹æ®å®é™…çš„iå€¼å¯¹é½
 	sprintf(progress->format, "%%%dd/%%%dld", i, i);
 	memset(progress->backup, '\b', sizeof(progress->backup)-1);
 	progress->backup[sizeof(progress->backup)-1] = 0;
 	if ((2*i)+1 < (int) sizeof(progress->backup))
-        //¸ù¾İiÖµÊä³öbackspace,ÓÃÓÚ½«Êä³öµÄ×Ö·ûÉ¾³ı
+        //æ ¹æ®iå€¼è¾“å‡ºbackspace,ç”¨äºå°†è¾“å‡ºçš„å­—ç¬¦åˆ é™¤
 		progress->backup[(2*i)+1] = 0;
 	progress->max = max;
 
@@ -320,9 +320,9 @@ static void progress_init(struct progress_struct *progress,
 	if (getenv("MKE2FS_SKIP_PROGRESS"))
 		progress->skip_progress++;
 
-    //Êä³ölabel
+    //è¾“å‡ºlabel
 	fputs(label, stdout);
-    //½«»º´æÖĞµÄÄÚÈİÈ«²¿Êä³öµ½stdout
+    //å°†ç¼“å­˜ä¸­çš„å†…å®¹å…¨éƒ¨è¾“å‡ºåˆ°stdout
 	fflush(stdout);
 }
 
@@ -370,7 +370,7 @@ static errcode_t zero_blocks(ext2_filsys fs, blk_t blk, int num,
 	}
 	/* Allocate the zeroizing buffer if necessary */
 	if (!buf) {
-        //Ò»´ÎĞÔÇå¿Õ8¸öblock
+        //ä¸€æ¬¡æ€§æ¸…ç©º8ä¸ªblock
 		buf = malloc(fs->blocksize * STRIDE_LENGTH);
 		if (!buf) {
 			com_err("malloc", ENOMEM,
@@ -398,14 +398,14 @@ static errcode_t zero_blocks(ext2_filsys fs, blk_t blk, int num,
 		}
 		if (progress && j > next_update) {
 			next_update += num / 100;
-            //ÏÔÊ¾½ø¶È
+            //æ˜¾ç¤ºè¿›åº¦
 			progress_update(progress, blk);
 		}
 	}
 	return 0;
 }	
 
-//Çå¿Õinode tableËùÔÚµÄblock
+//æ¸…ç©ºinode tableæ‰€åœ¨çš„block
 static void write_inode_tables(ext2_filsys fs)
 {
 	errcode_t	retval;
@@ -426,7 +426,7 @@ static void write_inode_tables(ext2_filsys fs)
 		lazy_flag = 1;
 
 	for (i = 0; i < fs->group_desc_count; i++) {
-        //¶¯Ì¬Êä³öµ±Ç°´¦ÀíµÄ½ø¶È
+        //åŠ¨æ€è¾“å‡ºå½“å‰å¤„ç†çš„è¿›åº¦
 		progress_update(&progress, i);
 		
 		blk = fs->group_desc[i].bg_inode_table;
@@ -434,7 +434,7 @@ static void write_inode_tables(ext2_filsys fs)
 
 		if (!(lazy_flag &&
 		      (fs->group_desc[i].bg_flags & EXT2_BG_INODE_UNINIT))) {
-            //Çå¿Õinode tableËùÔÚµÄblock
+            //æ¸…ç©ºinode tableæ‰€åœ¨çš„block
 			retval = zero_blocks(fs, blk, num, 0, &blk, &num);
 			if (retval) {
 				fprintf(stderr, _("\nCould not write %d "
@@ -450,7 +450,7 @@ static void write_inode_tables(ext2_filsys fs)
 				sync();
 		}
 	}
-    //Çå¿Õzero_blocksËùÓÃµÄbuf
+    //æ¸…ç©ºzero_blocksæ‰€ç”¨çš„buf
 	zero_blocks(0, 0, 0, 0, 0, 0);
 	progress_close(&progress);
 }
@@ -471,8 +471,8 @@ static void setup_lazy_bg(ext2_filsys fs)
 			if (bg->bg_free_inodes_count ==
 			    sb->s_inodes_per_group) {
                 /* 
-                 * Èç¹ûÒ»¸ögroupµÄinode»¹Ã»±»³õÊ¼»¯,Õâ¸ögroupµÄfree inodeÖ»ÄÜÉèÖÃÎª0,
-                 * ²¢ÇÒfsÖĞ¿ÉÓÃµÄinode²»ÄÜ°üº¬Õâ¸ögroupÖĞµÄinode
+                 * å¦‚æœä¸€ä¸ªgroupçš„inodeè¿˜æ²¡è¢«åˆå§‹åŒ–,è¿™ä¸ªgroupçš„free inodeåªèƒ½è®¾ç½®ä¸º0,
+                 * å¹¶ä¸”fsä¸­å¯ç”¨çš„inodeä¸èƒ½åŒ…å«è¿™ä¸ªgroupä¸­çš„inode
                  */
 				bg->bg_free_inodes_count = 0;
 				bg->bg_flags |= EXT2_BG_INODE_UNINIT;
@@ -482,8 +482,8 @@ static void setup_lazy_bg(ext2_filsys fs)
 			blks = ext2fs_super_and_bgd_loc(fs, i, 0, 0, 0, 0);
 			if (bg->bg_free_blocks_count == blks) {
                 /* 
-                 * Èç¹ûÒ»¸ögroupµÄblock»¹Ã»±»³õÊ¼»¯,Õâ¸ögroupµÄfree blockÖ»ÄÜÉèÖÃÎª0,
-                 * ²¢ÇÒfsÖĞ¿ÉÓÃµÄblock²»ÄÜ°üº¬Õâ¸ögroupÖĞµÄblock
+                 * å¦‚æœä¸€ä¸ªgroupçš„blockè¿˜æ²¡è¢«åˆå§‹åŒ–,è¿™ä¸ªgroupçš„free blockåªèƒ½è®¾ç½®ä¸º0,
+                 * å¹¶ä¸”fsä¸­å¯ç”¨çš„blockä¸èƒ½åŒ…å«è¿™ä¸ªgroupä¸­çš„block
                  */
 				bg->bg_free_blocks_count = 0;
 				bg->bg_flags |= EXT2_BG_BLOCK_UNINIT;
@@ -505,7 +505,7 @@ static void create_root_dir(ext2_filsys fs)
 		exit(1);
 	}
 	if (geteuid()) {
-        //Èç¹ûÎÄ¼şÏµÍ³µÄ´´½¨Õß²»ÊÇroot
+        //å¦‚æœæ–‡ä»¶ç³»ç»Ÿçš„åˆ›å»ºè€…ä¸æ˜¯root
 		retval = ext2fs_read_inode(fs, EXT2_ROOT_INO, &inode);
 		if (retval) {
 			com_err("ext2fs_read_inode", retval,
@@ -542,18 +542,18 @@ static void create_lost_and_found(ext2_filsys fs)
 
 	retval = ext2fs_lookup(fs, EXT2_ROOT_INO, name, strlen(name), 0, &ino);
 	if (retval) {
-        //Ã»ÓĞÔÚ¸ùÄ¿Â¼ÏÂÕÒµ½lost+foundÄ¿Â¼
+        //æ²¡æœ‰åœ¨æ ¹ç›®å½•ä¸‹æ‰¾åˆ°lost+foundç›®å½•
 		com_err("ext2_lookup", retval,
 			_("while looking up /lost+found"));
 		exit(1);
 	}
 
 	for (i=1; i < EXT2_NDIR_BLOCKS; i++) {
-        //±éÀúÖ±½ÓË÷Òı
+        //éå†ç›´æ¥ç´¢å¼•
 		if ((lpf_size += fs->blocksize) >= 16*1024)
-            //·ÖÅä´óĞ¡²»ÄÜ³¬¹ı16k
+            //åˆ†é…å¤§å°ä¸èƒ½è¶…è¿‡16k
 			break;
-        //Õâ¾ÍÊÇÎªÊ²Ã´lost+foundÕâ¸öÄ¿Â¼µÄ´óĞ¡³¬¹ı1¸öblockµÄÔ­Òò
+        //è¿™å°±æ˜¯ä¸ºä»€ä¹ˆlost+foundè¿™ä¸ªç›®å½•çš„å¤§å°è¶…è¿‡1ä¸ªblockçš„åŸå› 
 		retval = ext2fs_expand_dir(fs, ino);
 		if (retval) {
 			com_err("ext2fs_expand_dir", retval,
@@ -579,7 +579,7 @@ static void create_bad_block_inode(ext2_filsys fs, badblocks_list bb_list)
 
 }
 
-//±£ÁôµÚ3(ÒòÎªµÚ2¸ö±»rootÄ¿Â¼Ê¹ÓÃ)µ½µÚÒ»¸öÄÜÊ¹ÓÃµÄinodeÖ®¼äµÄinode(Ò»°ãÇé¿öÊÇ11)
+//ä¿ç•™ç¬¬3(å› ä¸ºç¬¬2ä¸ªè¢«rootç›®å½•ä½¿ç”¨)åˆ°ç¬¬ä¸€ä¸ªèƒ½ä½¿ç”¨çš„inodeä¹‹é—´çš„inode(ä¸€èˆ¬æƒ…å†µæ˜¯11)
 static void reserve_inodes(ext2_filsys fs)
 {
 	ext2_ino_t	i;
@@ -587,11 +587,11 @@ static void reserve_inodes(ext2_filsys fs)
 
 	for (i = EXT2_ROOT_INO + 1; i < EXT2_FIRST_INODE(fs->super); i++) {
         /*
-         * ÆäÖĞµÚ2¸ö±»rootÊ¹ÓÃ,µÚ11¸ö±»/lost+foundÊ¹ÓÃ
+         * å…¶ä¸­ç¬¬2ä¸ªè¢«rootä½¿ç”¨,ç¬¬11ä¸ªè¢«/lost+foundä½¿ç”¨
         */
 		ext2fs_mark_inode_bitmap(fs->inode_map, i);
 		group = ext2fs_group_of_ino(fs, i);
-        //¼õÉÙsbºÍgroupÖĞfree inode count
+        //å‡å°‘sbå’Œgroupä¸­free inode count
 		fs->group_desc[group].bg_free_inodes_count--;
 		fs->super->s_free_inodes_count--;
 	}
@@ -631,7 +631,7 @@ static void zap_sector(ext2_filsys fs, int sect, int nsect)
 	}
 
 	memset(buf, 0, 512*nsect);
-    //ÉèÖÃfs->io->blocksize = 512
+    //è®¾ç½®fs->io->blocksize = 512
 	io_channel_set_blksize(fs->io, 512);
 	retval = io_channel_write_blk(fs->io, sect, -512*nsect, buf);
 	io_channel_set_blksize(fs->io, fs->blocksize);
@@ -691,12 +691,12 @@ static void show_stats(ext2_filsys fs)
 	blk_t			group_block;
 	dgrp_t			i;
     /* 
-     * need¼ÇÂ¼sbµÄblock no´òÓ¡³öÀ´Õ¼¶àÉÙÎ»
-     * col_left¼ÇÂ¼±¾ĞĞ»¹ÓĞ¶àÉÙÎ»¿ÉÒÔÓÃÀ´´òÓ¡sbµÄblock no
+     * needè®°å½•sbçš„block noæ‰“å°å‡ºæ¥å å¤šå°‘ä½
+     * col_leftè®°å½•æœ¬è¡Œè¿˜æœ‰å¤šå°‘ä½å¯ä»¥ç”¨æ¥æ‰“å°sbçš„block no
      */
 	int			need, col_left;
 	
-    //ÉèÖÃµÄblock count¿ÉÄÜºÍsbÖĞ¼ÇÂ¼µÄ²»Ò»ÖÂ
+    //è®¾ç½®çš„block countå¯èƒ½å’Œsbä¸­è®°å½•çš„ä¸ä¸€è‡´
 	if (fs_param.s_blocks_count != s->s_blocks_count)
 		fprintf(stderr, _("warning: %u blocks unused.\n\n"),
 		       fs_param.s_blocks_count - s->s_blocks_count);
@@ -745,14 +745,14 @@ static void show_stats(ext2_filsys fs)
 		if (!ext2fs_bg_has_super(fs, i))
 			continue;
 		if (i != 1)
-            //µÚÒ»¸öÔªËØ²»´òÓ¡','
+            //ç¬¬ä¸€ä¸ªå…ƒç´ ä¸æ‰“å°','
 			printf(", ");
-        //+2ÊÇÒòÎª','ºÍ' '¸÷Õ¼ÓÃÒ»Î»
+        //+2æ˜¯å› ä¸º','å’Œ' 'å„å ç”¨ä¸€ä½
 		need = int_log10(group_block) + 2;
 		if (need > col_left) {
-            //Ò»ĞĞ´òÓ¡Íê±Ï
+            //ä¸€è¡Œæ‰“å°å®Œæ¯•
 			printf("\n\t");
-            //Ò»ĞĞ×î¶àÓĞ72¸ö×Ö·û
+            //ä¸€è¡Œæœ€å¤šæœ‰72ä¸ªå­—ç¬¦
 			col_left = 72;
 		}
 		col_left -= need;
@@ -813,7 +813,7 @@ static void parse_extended_opts(struct ext2_super_block *param,
 			*arg = 0;
 			arg++;
 		}
-		//RAIDÊ¹ÓÃµÄtrunk
+		//RAIDä½¿ç”¨çš„trunk
 		if (strcmp(token, "stride") == 0) {
 			if (!arg) {
 				r_usage++;
@@ -861,28 +861,28 @@ static void parse_extended_opts(struct ext2_super_block *param,
 			}
 
 			blocksize = EXT2_BLOCK_SIZE(param);
-			//Ò»¸ögroupÖĞµÄblock¸öÊı
+			//ä¸€ä¸ªgroupä¸­çš„blockä¸ªæ•°
 			bpg = param->s_blocks_per_group;
 			if (!bpg)
 				bpg = blocksize * 8;
-			//Ã¿¸öblockÖĞµÄgroup descriptorµÄ¸öÊı
+			//æ¯ä¸ªblockä¸­çš„group descriptorçš„ä¸ªæ•°
 			gdpb = blocksize / sizeof(struct ext2_group_desc);
-			//ÎÄ¼şÏµÍ³ÖĞgroup descriptorµÄ¸öÊı
+			//æ–‡ä»¶ç³»ç»Ÿä¸­group descriptorçš„ä¸ªæ•°
 			group_desc_count = (param->s_blocks_count +
 					    bpg - 1) / bpg;
-			//ËùÓĞµÄgroup descriptorÕ¼ÓÃµÄblock¸öÊı
+			//æ‰€æœ‰çš„group descriptorå ç”¨çš„blockä¸ªæ•°
 			desc_blocks = (group_desc_count +
 				       gdpb - 1) / gdpb;
-			//À©ÈİºóµÄgroup descriptor¸öÊı
+			//æ‰©å®¹åçš„group descriptorä¸ªæ•°
 			rsv_groups = (resize + bpg - 1) / bpg;
 			/*
-			 * À©ÈİºóµÄgroup descriptorÕ¼ÓÃµÄblockµÄ¸öÊı - ÏµÍ³ÖĞÒÑ¾­±»group descriptorÕ¼ÓÃµÄ
-			 * block¸öÊı = ĞèÒªÎªÀ©ÈİÔ¤ÁôµÄblock¸öÊı
+			 * æ‰©å®¹åçš„group descriptorå ç”¨çš„blockçš„ä¸ªæ•° - ç³»ç»Ÿä¸­å·²ç»è¢«group descriptorå ç”¨çš„
+			 * blockä¸ªæ•° = éœ€è¦ä¸ºæ‰©å®¹é¢„ç•™çš„blockä¸ªæ•°
 			 */
 			rsv_gdb = (rsv_groups + gdpb - 1) / gdpb - 
 				desc_blocks;
 			if (rsv_gdb > (int) EXT2_ADDR_PER_BLOCK(param))
-				//ÎªÀ©ÈİÔ¤ÁôµÄblockÊıÁ¿²»ÄÜ³¬¹ıÒ»¸öblockÄÜÈİÄÉµØÖ·µÄ¸öÊı 
+				//ä¸ºæ‰©å®¹é¢„ç•™çš„blockæ•°é‡ä¸èƒ½è¶…è¿‡ä¸€ä¸ªblockèƒ½å®¹çº³åœ°å€çš„ä¸ªæ•° 
 				rsv_gdb = EXT2_ADDR_PER_BLOCK(param);
 
 			if (rsv_gdb > 0) {
@@ -907,9 +907,9 @@ static void parse_extended_opts(struct ext2_super_block *param,
 }	
 
 /*
- * ok_features[0]¼ÇÂ¼ÁËÖ§³ÖµÄ¼æÈİÌØĞÔ
- * ok_features[1]¼ÇÂ¼ÁËÖ§³ÖµÄ²»¼æÈİÌØĞÔ
- * ok_features[2]¼ÇÂ¼ÁËÖ§³ÖµÄÖ»¶ÁÌØĞÔ
+ * ok_features[0]è®°å½•äº†æ”¯æŒçš„å…¼å®¹ç‰¹æ€§
+ * ok_features[1]è®°å½•äº†æ”¯æŒçš„ä¸å…¼å®¹ç‰¹æ€§
+ * ok_features[2]è®°å½•äº†æ”¯æŒçš„åªè¯»ç‰¹æ€§
  */
 static __u32 ok_features[3] = {
 	EXT3_FEATURE_COMPAT_HAS_JOURNAL |
@@ -951,10 +951,10 @@ static void PRS(int argc, char *argv[])
 	int		size;
 	char 		*tmp, *tmp2;
 	int		blocksize = 0;
-	//ÎÄ¼şÏµÍ³ÖĞ¶àÉÙ¸ö×Ö½Ú·ÖÅäÒ»¸öinode
+	//æ–‡ä»¶ç³»ç»Ÿä¸­å¤šå°‘ä¸ªå­—èŠ‚åˆ†é…ä¸€ä¸ªinode
 	int		inode_ratio = 0;
 	int		inode_size = 0;
-	//±£ÁôµÄblock ±ÈÂÊ
+	//ä¿ç•™çš„block æ¯”ç‡
 	double		reserved_ratio = 5.0;
 	int		sector_size = 0;
 	int		show_version_only = 0;
@@ -963,7 +963,7 @@ static void PRS(int argc, char *argv[])
 	char *		oldpath = getenv("PATH");
 	char *		extended_opts = 0;
 	const char *	fs_type = 0;
-	//·ÖÇøµÄ´óĞ¡,ÒÔblockÎªµ¥Î»
+	//åˆ†åŒºçš„å¤§å°,ä»¥blockä¸ºå•ä½
 	blk_t		dev_size;
 #ifdef __linux__
 	struct 		utsname ut;
@@ -1004,14 +1004,14 @@ static void PRS(int argc, char *argv[])
 	if ((tmp = getenv("MKE2FS_CONFIG")) != NULL)
 		config_fn[0] = tmp;
 	profile_set_syntax_err_cb(syntax_err_report);
-	//¶ÁÈ¡/etc/mke2fs.confÖĞµÄÅäÖÃ
+	//è¯»å–/etc/mke2fs.confä¸­çš„é…ç½®
 	profile_init(config_fn, &profile);
 	
 	setbuf(stdout, NULL);
 	setbuf(stderr, NULL);
 	initialize_ext2_error_table();
 	memset(&fs_param, 0, sizeof(struct ext2_super_block));
-	//Ä¬ÈÏÊ¹ÓÃrev 1µÄÎÄ¼şÏµÍ³
+	//é»˜è®¤ä½¿ç”¨rev 1çš„æ–‡ä»¶ç³»ç»Ÿ
 	fs_param.s_rev_level = 1;  /* Create revision 1 filesystems now */
 
 #ifdef __linux__
@@ -1020,7 +1020,7 @@ static void PRS(int argc, char *argv[])
 		exit(1);
 	}
 	linux_version_code = parse_version_number(ut.release);
-	//¸ù¾İµ±Ç°kernel°æ±¾À´Ñ¡ÔñÎÄ¼şÏµÍ³°æ±¾
+	//æ ¹æ®å½“å‰kernelç‰ˆæœ¬æ¥é€‰æ‹©æ–‡ä»¶ç³»ç»Ÿç‰ˆæœ¬
 	if (linux_version_code && linux_version_code < (2*65536 + 2*256))
 		fs_param.s_rev_level = 0;
 #endif
@@ -1029,9 +1029,9 @@ static void PRS(int argc, char *argv[])
 		program_name = get_progname(*argv);
 
 		/* If called as mkfs.ext3, create a journal inode */
-		//ÅĞ¶ÏÊÇmkfs.ext2»¹ÊÇmkfs.ext3
+		//åˆ¤æ–­æ˜¯mkfs.ext2è¿˜æ˜¯mkfs.ext3
 		if (!strcmp(program_name, "mkfs.ext3"))
-			//Èç¹ûÖ´ĞĞµÄÃüÁîÊÇmkfs.ext3,journal_size = -1;
+			//å¦‚æœæ‰§è¡Œçš„å‘½ä»¤æ˜¯mkfs.ext3,journal_size = -1;
 			journal_size = -1;
 	}
 
@@ -1039,7 +1039,7 @@ static void PRS(int argc, char *argv[])
 		    "b:cf:g:i:jl:m:no:qr:s:tvE:FI:J:L:M:N:O:R:ST:V")) != EOF) {
 		switch (c) {
 		case 'b':
-			//»ñÈ¡block_size
+			//è·å–block_size
 			blocksize = strtol(optarg, &tmp, 0);
 			b = (blocksize > 0) ? blocksize : -blocksize;
 			if (b < EXT2_MIN_BLOCK_SIZE ||
@@ -1077,7 +1077,7 @@ static void PRS(int argc, char *argv[])
 			       "Ignoring -f option\n"));
 			break;
 		case 'g':
-			//ÉèÖÃblocks_per_group
+			//è®¾ç½®blocks_per_group
 			fs_param.s_blocks_per_group = strtoul(optarg, &tmp, 0);
 			if (*tmp) {
 				com_err(program_name, 0,
@@ -1107,7 +1107,7 @@ static void PRS(int argc, char *argv[])
 			break;
 		case 'j':
 			if (!journal_size)
-				//Èç¹ûjournal_size == 0,ĞŞ¸ÄÆäÖµÎª -1.Ò²¾ÍÊÇÇ¿ÖÆÊ¹ÓÃjournal
+				//å¦‚æœjournal_size == 0,ä¿®æ”¹å…¶å€¼ä¸º -1.ä¹Ÿå°±æ˜¯å¼ºåˆ¶ä½¿ç”¨journal
 				journal_size = -1;
 			break;
 		case 'l':
@@ -1120,7 +1120,7 @@ static void PRS(int argc, char *argv[])
 			strcpy(bad_blocks_filename, optarg);
 			break;
 		case 'm':
-			//±£ÁôµÄblockÊıÁ¿²»ÄÜ³¬¹ı×ÜÊıµÄ50%
+			//ä¿ç•™çš„blockæ•°é‡ä¸èƒ½è¶…è¿‡æ€»æ•°çš„50%
 			reserved_ratio = strtod(optarg, &tmp);
 			if (reserved_ratio > 50 || *tmp) {
 				com_err(program_name, 0,
@@ -1130,7 +1130,7 @@ static void PRS(int argc, char *argv[])
 			}
 			break;
 		case 'n':
-			//mkfs²»×ö¸ñÊ½»¯µÄ²Ù×÷,½ö½öÏÔÊ¾ÎÄ¼şÏµÍ³ĞÅÏ¢ 
+			//mkfsä¸åšæ ¼å¼åŒ–çš„æ“ä½œ,ä»…ä»…æ˜¾ç¤ºæ–‡ä»¶ç³»ç»Ÿä¿¡æ¯ 
 			noaction++;
 			break;
 		case 'o':
@@ -1146,19 +1146,19 @@ static void PRS(int argc, char *argv[])
 					_("bad revision level - %s"), optarg);
 				exit(1);
 			}
-			//ÎÄ¼şÏµÍ³rev
+			//æ–‡ä»¶ç³»ç»Ÿrev
 			fs_param.s_rev_level = r_opt;
 			break;
 		case 's':	/* deprecated */
 			/* 
-			 * -s xxx,Èç¹ûxxx > 0,±íÊ¾Ê¹ÓÃSPARSE_SUPERÕâÖÖÌØĞÔ,
-			 * xxx == 0,±íÊ¾È¥³ıSPARSE_SUPERÕâÖÖÌØĞÔ
+			 * -s xxx,å¦‚æœxxx > 0,è¡¨ç¤ºä½¿ç”¨SPARSE_SUPERè¿™ç§ç‰¹æ€§,
+			 * xxx == 0,è¡¨ç¤ºå»é™¤SPARSE_SUPERè¿™ç§ç‰¹æ€§
 			 */
 			s_opt = atoi(optarg);
 			break;
 #ifdef EXT2_DYNAMIC_REV
 		case 'I':
-			//Ö¸¶¨inode size
+			//æŒ‡å®šinode size
 			inode_size = strtoul(optarg, &tmp, 0);
 			if (*tmp) {
 				com_err(program_name, 0,
@@ -1208,10 +1208,10 @@ static void PRS(int argc, char *argv[])
 			usage();
 		}
 	}
-	//µ±ÃüÁîĞĞÖĞÖ»ÓĞÑ¡Ïî¼°Ñ¡Ïî²ÎÊı,Ã»ÓĞ²Ù×÷ÊıÊ±,²Å»á³öÏÖoptind == argcµÄÇé¿ö
+	//å½“å‘½ä»¤è¡Œä¸­åªæœ‰é€‰é¡¹åŠé€‰é¡¹å‚æ•°,æ²¡æœ‰æ“ä½œæ•°æ—¶,æ‰ä¼šå‡ºç°optind == argcçš„æƒ…å†µ
 	if ((optind == argc) && !show_version_only)
 		usage();
-	//device_name±»ÒÆ¶¯µ½ÁË×îºóÒ»¸ö²ÎÊı
+	//device_nameè¢«ç§»åŠ¨åˆ°äº†æœ€åä¸€ä¸ªå‚æ•°
 	device_name = argv[optind++];
 
 	if (!quiet || show_version_only)
@@ -1261,7 +1261,7 @@ static void PRS(int argc, char *argv[])
 	}
 
 	if (blocksize > sys_page_size) {
-		//blocksize ²»ÄÜ´óÓÚ page size
+		//blocksize ä¸èƒ½å¤§äº page size
 		if (!force) {
 			com_err(program_name, 0,
 				_("%d-byte blocks too big for system (max %d)"),
@@ -1273,7 +1273,7 @@ static void PRS(int argc, char *argv[])
 			blocksize, sys_page_size);
 	}
 	if (optind < argc) {
-		//¼ÆËãÎÄ¼şÏµÍ³ÖĞblock count,ÔÚÃüÁîĞĞµÄ²ÎÊıÖĞ,Éè±¸ºó½ÓµÄÊÇblock count
+		//è®¡ç®—æ–‡ä»¶ç³»ç»Ÿä¸­block count,åœ¨å‘½ä»¤è¡Œçš„å‚æ•°ä¸­,è®¾å¤‡åæ¥çš„æ˜¯block count
 		fs_param.s_blocks_count = parse_num_blocks(argv[optind++], 
 				fs_param.s_log_block_size);
 		if (!fs_param.s_blocks_count) {
@@ -1287,10 +1287,10 @@ static void PRS(int argc, char *argv[])
 
 	if (!force)
 		check_plausibility(device_name);
-	//¼ì²édevice_nameÊÇ·ñ±»¹ÒÔØÉÏÁË,ÊÇ·ñÕıÔÚÊ¹ÓÃÖĞ
+	//æ£€æŸ¥device_nameæ˜¯å¦è¢«æŒ‚è½½ä¸Šäº†,æ˜¯å¦æ­£åœ¨ä½¿ç”¨ä¸­
 	check_mount(device_name, force, _("filesystem"));
 
-	//frag sizeºÍblock sizeÏàÍ¬
+	//frag sizeå’Œblock sizeç›¸åŒ
 	fs_param.s_log_frag_size = fs_param.s_log_block_size;
 
 	if (noaction && fs_param.s_blocks_count) {
@@ -1298,7 +1298,7 @@ static void PRS(int argc, char *argv[])
 		retval = 0;
 	} else {
 	retry:
-		//µÚÒ»´Î¼ÆËãblock count,Õâ¸öÊ±ºòµÄblock sizeÒÔ1024Îªµ¥Î»
+		//ç¬¬ä¸€æ¬¡è®¡ç®—block count,è¿™ä¸ªæ—¶å€™çš„block sizeä»¥1024ä¸ºå•ä½
 		retval = ext2fs_get_device_size(device_name,
 						EXT2_BLOCK_SIZE(&fs_param),
 						&dev_size);
@@ -1336,33 +1336,33 @@ static void PRS(int argc, char *argv[])
 				  ));
 				exit(1);
 			}
-			//ÉèÖÃs_blocks_count
+			//è®¾ç½®s_blocks_count
 			fs_param.s_blocks_count = dev_size; 
 			if (sys_page_size > EXT2_BLOCK_SIZE(&fs_param))
 				/* 
-				 * block num * block countÒªÒÔpage ¶ÔÆë.
+				 * block num * block countè¦ä»¥page å¯¹é½.
 			    */
 				fs_param.s_blocks_count &= ~((sys_page_size /
 					   EXT2_BLOCK_SIZE(&fs_param))-1);
 		}
 		
 	} else if (!force && (fs_param.s_blocks_count > dev_size)) {
-		//Èç¹û²ÎÊıÖĞÖ¸¶¨block count´óÓÚÍ¨¹ıioctl»ñÈ¡µÄ´ÅÅÌ´óĞ¡,²¢ÇÒ²»ÊÇÇ¿ÖÆÖ¸¶¨,ĞèÒªÓÃ»§È·ÈÏ
+		//å¦‚æœå‚æ•°ä¸­æŒ‡å®šblock countå¤§äºé€šè¿‡ioctlè·å–çš„ç£ç›˜å¤§å°,å¹¶ä¸”ä¸æ˜¯å¼ºåˆ¶æŒ‡å®š,éœ€è¦ç”¨æˆ·ç¡®è®¤
 		com_err(program_name, 0,
 			_("Filesystem larger than apparent device size."));
 		proceed_question();
 	}
 
 	if (!fs_type) {
-		//megs¼ÇÂ¼Éè±¸´óĞ¡,ÒÔMBÎªµ¥Î»
+		//megsè®°å½•è®¾å¤‡å¤§å°,ä»¥MBä¸ºå•ä½
 		int megs = fs_param.s_blocks_count * 
 			(EXT2_BLOCK_SIZE(&fs_param) / 1024) / 1024;
 
 		if (megs <= 3)
-			//Éè±¸Ğ¡ÓÚ3MB,ËµÃ÷Éè±¸¿ÉÄÜÊÇfloppy
+			//è®¾å¤‡å°äº3MB,è¯´æ˜è®¾å¤‡å¯èƒ½æ˜¯floppy
 			fs_type = "floppy";
 		else if (megs <= 512)
-			//Ğ¡ÓÚ512MB,ËµÃ÷¿ÉÄÜÊÇĞ¡ÈİÁ¿´æ´¢Éè±¸
+			//å°äº512MB,è¯´æ˜å¯èƒ½æ˜¯å°å®¹é‡å­˜å‚¨è®¾å¤‡
 			fs_type = "small";
 		else
 			fs_type = "default";
@@ -1371,7 +1371,7 @@ static void PRS(int argc, char *argv[])
 	/* Figure out what features should be enabled */
 
 	if (r_opt == EXT2_GOOD_OLD_REV && fs_features) {
-		//rev 0²»Ö§³Öfeatures
+		//rev 0ä¸æ”¯æŒfeatures
 		fprintf(stderr, _("Filesystem features not supported "
 				  "with revision 0 filesystems\n"));
 		exit(1);
@@ -1381,7 +1381,7 @@ static void PRS(int argc, char *argv[])
 			   "filetype,sparse_super", &tmp);
 	profile_get_string(profile, "fs_types", fs_type, "base_features",
 			   tmp, &tmp2);
-	//½«ÅäÖÃÎÄ¼şÖĞµÄbase_featuresµÄÖµ×ª³ÉÕûĞÎ¸³Öµ¸øs_feature_compat
+	//å°†é…ç½®æ–‡ä»¶ä¸­çš„base_featuresçš„å€¼è½¬æˆæ•´å½¢èµ‹å€¼ç»™s_feature_compat
 	edit_feature(tmp2, &fs_param.s_feature_compat);
 	free(tmp);
 	free(tmp2);
@@ -1390,7 +1390,7 @@ static void PRS(int argc, char *argv[])
 			   "", &tmp);
 	profile_get_string(profile, "fs_types", fs_type, 
 			   "default_features", tmp, &tmp2);
-	//Èç¹ûÃüÁîĞĞÖĞÉèÖÃÁËfeature,Ê¹ÓÃÃüÁîĞĞÖĞµÄfeature,·ñÔòÊ¹ÓÃÅäÖÃÎÄ¼şµÄdefault_features 
+	//å¦‚æœå‘½ä»¤è¡Œä¸­è®¾ç½®äº†feature,ä½¿ç”¨å‘½ä»¤è¡Œä¸­çš„feature,å¦åˆ™ä½¿ç”¨é…ç½®æ–‡ä»¶çš„default_features 
 	edit_feature(fs_features ? fs_features : tmp2, 
 		     &fs_param.s_feature_compat);
 	free(tmp);
@@ -1440,11 +1440,11 @@ static void PRS(int argc, char *argv[])
 	if ((tmp = getenv("MKE2FS_DEVICE_SECTSIZE")) != NULL)
 		sector_size = atoi(tmp);
 
-	//µÚ2´Î¼ÆËãblock count,ÕâÊ±ºòµÄblock sizeÒÔÅäÖÃÎÄ¼şÖĞµÄÎªµ¥Î»
+	//ç¬¬2æ¬¡è®¡ç®—block count,è¿™æ—¶å€™çš„block sizeä»¥é…ç½®æ–‡ä»¶ä¸­çš„ä¸ºå•ä½
 	if (blocksize <= 0) {
 		profile_get_integer(profile, "defaults", "blocksize", 0,
 				    1024, &use_bsize);
-		//Èç¹ûfs_typesÖĞÓĞÖµ,»á½«defaultÖĞµÄ¸²¸Ç
+		//å¦‚æœfs_typesä¸­æœ‰å€¼,ä¼šå°†defaultä¸­çš„è¦†ç›–
 		profile_get_integer(profile, "fs_types", fs_type, 
 				    "blocksize", use_bsize, &use_bsize);
 
@@ -1454,7 +1454,7 @@ static void PRS(int argc, char *argv[])
 			    (use_bsize > 4096))
 				use_bsize = 4096;
 		}
-		//block size²»ÄÜĞ¡ÓÚÓ²¼şµÄsector size
+		//block sizeä¸èƒ½å°äºç¡¬ä»¶çš„sector size
 		if (sector_size && use_bsize < sector_size)
 			use_bsize = sector_size;
 		if ((blocksize < 0) && (use_bsize < (-blocksize)))
@@ -1464,27 +1464,27 @@ static void PRS(int argc, char *argv[])
 	}
 
 	if (inode_ratio == 0) {
-		//´ÓÅäÖÃÎÄ¼şÖĞ»ñÈ¡inode_ratio 
+		//ä»é…ç½®æ–‡ä»¶ä¸­è·å–inode_ratio 
 		profile_get_integer(profile, "defaults", "inode_ratio", 0,
 				    8192, &inode_ratio);
 		profile_get_integer(profile, "fs_types", fs_type, 
 				    "inode_ratio", inode_ratio, 
 				    &inode_ratio);
 
-		//ÃüÁîĞĞÃ»ÓĞÖ¸¶¨inode_ratioÊ±,inode¸öÊı²»ÄÜ±Èblock¸öÊı¶à
+		//å‘½ä»¤è¡Œæ²¡æœ‰æŒ‡å®šinode_ratioæ—¶,inodeä¸ªæ•°ä¸èƒ½æ¯”blockä¸ªæ•°å¤š
 		if (inode_ratio < blocksize)
 			inode_ratio = blocksize;
 	}
 
-	//Ê¹ÓÃÅäÖÃÎÄ¼şµÄblock size
+	//ä½¿ç”¨é…ç½®æ–‡ä»¶çš„block size
 	fs_param.s_log_frag_size = fs_param.s_log_block_size =
 		int_log2(blocksize >> EXT2_MIN_BLOCK_LOG_SIZE);
 
- 	//ÅäÖÃÎÄ¼şÖĞµÄblock size¿ÉÄÜ²»ÊÇ2µÄn´ÎÃİ,¾­¹ıÉÏ¸ö²½Öè,¶Ôblock size½øĞĞÁË¶ÔÆë
+ 	//é…ç½®æ–‡ä»¶ä¸­çš„block sizeå¯èƒ½ä¸æ˜¯2çš„næ¬¡å¹‚,ç»è¿‡ä¸Šä¸ªæ­¥éª¤,å¯¹block sizeè¿›è¡Œäº†å¯¹é½
 	blocksize = EXT2_BLOCK_SIZE(&fs_param);
 
 	if (extended_opts)
-		//½âÎöÍØÕ¹Ñ¡Ïî
+		//è§£ææ‹“å±•é€‰é¡¹
 		parse_extended_opts(&fs_param, extended_opts);
 
 	/* Since sparse_super is the default, we would only have a problem
@@ -1492,7 +1492,7 @@ static void PRS(int argc, char *argv[])
 	 */
 	if ((fs_param.s_feature_compat & EXT2_FEATURE_COMPAT_RESIZE_INODE) &&
 	    !(fs_param.s_feature_ro_compat&EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER)) {
-	    //Õâ¸öÎÄ¼şÏµÍ³ÖĞÓĞÖ§³Öresize_inode,µ«ÊÇÃ»ÓĞsparse_super
+	    //è¿™ä¸ªæ–‡ä»¶ç³»ç»Ÿä¸­æœ‰æ”¯æŒresize_inode,ä½†æ˜¯æ²¡æœ‰sparse_super
 		com_err(program_name, 0,
 			_("reserved online resize blocks not supported "
 			  "on non-sparse filesystem"));
@@ -1522,11 +1522,11 @@ static void PRS(int argc, char *argv[])
 			"Use -b 4096 if this is an issue for you.\n\n"));
 
  	if (inode_size) {
-		//ÔÚÕâÀï,Èç¹ûinode_size > 0,Ò»¶¨ÊÇÃüÁîĞĞ´«À´µÄ
+		//åœ¨è¿™é‡Œ,å¦‚æœinode_size > 0,ä¸€å®šæ˜¯å‘½ä»¤è¡Œä¼ æ¥çš„
 		if (inode_size < EXT2_GOOD_OLD_INODE_SIZE ||
 		    inode_size > EXT2_BLOCK_SIZE(&fs_param) ||
 		    inode_size & (inode_size - 1)) {
-		    //inode_size²»ÄÜĞ¡ÓÚ128,²»ÄÜ´óÓÚblock size,±ØĞëÊÇ2µÄn´Î·½
+		    //inode_sizeä¸èƒ½å°äº128,ä¸èƒ½å¤§äºblock size,å¿…é¡»æ˜¯2çš„næ¬¡æ–¹
 			com_err(program_name, 0,
 				_("invalid inode size %d (min %d/max %d)"),
 				inode_size, EXT2_GOOD_OLD_INODE_SIZE,
@@ -1543,7 +1543,7 @@ static void PRS(int argc, char *argv[])
 	/*
 	 * Calculate number of inodes based on the inode ratio
 	 */
-	//Èç¹ûÃüÁîĞĞÖĞÃ»ÓĞÖ¸¶¨num_inodes,ÄÇ¾ÍÊ¹ÓÃÎÄ¼şÏµÍ³´óĞ¡/inode_ratio
+	//å¦‚æœå‘½ä»¤è¡Œä¸­æ²¡æœ‰æŒ‡å®šnum_inodes,é‚£å°±ä½¿ç”¨æ–‡ä»¶ç³»ç»Ÿå¤§å°/inode_ratio
 	fs_param.s_inodes_count = num_inodes ? num_inodes : 
 		((__u64) fs_param.s_blocks_count * blocksize)
 			/ inode_ratio;
@@ -1594,7 +1594,7 @@ int main (int argc, char *argv[])
 	 * Wipe out the old on-disk superblock
 	 */
 	if (!noaction)
-		//²Á³ı´ÅÅÌÉÏ¾ÉµÄsb
+		//æ“¦é™¤ç£ç›˜ä¸Šæ—§çš„sb
 		zap_sector(fs, 2, 6);
 
 	/*
@@ -1615,13 +1615,12 @@ int main (int argc, char *argv[])
 	 */
 	for (i = 0, val = 0 ; i < sizeof(fs->super->s_uuid); i++)
 		val += fs->super->s_uuid[i];
-    //±ÜÃâÍ¬Ê±¼ì²éËùÓĞµÄfs
+    //é¿å…åŒæ—¶æ£€æŸ¥æ‰€æœ‰çš„fs
 	fs->super->s_max_mnt_count += val % EXT2_DFL_MAX_MNT_COUNT;
-
 	/*
 	 * Override the creator OS, if applicable
 	 */
-    //¸øsb->s_creator_os¸³Öµ
+    //ç»™sb->s_creator_osèµ‹å€¼
 	if (creator_os && !set_os(fs->super, creator_os)) {
 		com_err (program_name, 0, _("unknown os - %s"), creator_os);
 		exit(1);
@@ -1691,7 +1690,7 @@ int main (int argc, char *argv[])
 		blk_t ret_blk;
 
 #ifdef ZAP_BOOTBLOCK
-//Çå³ı·ÖÇøÖĞµÄbootÇøÓò
+//æ¸…é™¤åˆ†åŒºä¸­çš„bootåŒºåŸŸ
 		zap_sector(fs, 0, 2);
 #endif
 
@@ -1700,12 +1699,12 @@ int main (int argc, char *argv[])
 		 * of the device.  This will also verify that the device is
 		 * as large as we think.  Be careful with very small devices.
 		 */
-        //×îºóÒ»¸öchunkµÄblockÎ»ÖÃ
+        //æœ€åä¸€ä¸ªchunkçš„blockä½ç½®
 		start = (blocks & ~(rsv - 1));
 		if (start > rsv)
 			start -= rsv;
 		if (start > 0)
-            //½«deviceÖĞ×îºóÒ»¸öchunkµÄÄÚÈİÇå³ı
+            //å°†deviceä¸­æœ€åä¸€ä¸ªchunkçš„å†…å®¹æ¸…é™¤
 			retval = zero_blocks(fs, start, blocks - start,
 					     NULL, &ret_blk, NULL);
 

@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * closefs.c --- close an ext2 filesystem
  * 
  * Copyright (C) 1993, 1994, 1995, 1996 Theodore Ts'o.
@@ -19,7 +19,7 @@
 #include "ext2_fs.h"
 #include "ext2fsP.h"
 
-//ÅĞ¶ÏaÊÇ·ñÊÇbµÄn´ÎÃİ
+//åˆ¤æ–­aæ˜¯å¦æ˜¯bçš„næ¬¡å¹‚
 static int test_root(int a, int b)
 {
 	if (a == 0)
@@ -28,7 +28,7 @@ static int test_root(int a, int b)
 		if (a == 1)
 			return 1;
 		if (a % b)
-			//Èç¹ûa / bÓĞÓàÊı
+			//å¦‚æœa / bæœ‰ä½™æ•°
 			return 0;
 		a = a / b;
 	}
@@ -38,10 +38,10 @@ int ext2fs_bg_has_super(ext2_filsys fs, int group_block)
 {
 	if (!(fs->super->s_feature_ro_compat &
 	      EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER))
-		//ÎÄ¼şÏµÍ³±¾Éí²»¾ßÓĞsparse superµÄÌØĞÔ,Ã¿¸ögroup¶¼ÓĞÍêÕûµÄmeta data
+		//æ–‡ä»¶ç³»ç»Ÿæœ¬èº«ä¸å…·æœ‰sparse superçš„ç‰¹æ€§,æ¯ä¸ªgroupéƒ½æœ‰å®Œæ•´çš„meta data
 		return 1;
 
-	//µ±group Îª0,1»òÕßÊÇ3,5,7µÄn´ÎÃİµÄÊ±ºò,Õâ¸ögroupÒ»¶¨º¬ÓĞÍêÕûµÄmeta data
+	//å½“group ä¸º0,1æˆ–è€…æ˜¯3,5,7çš„næ¬¡å¹‚çš„æ—¶å€™,è¿™ä¸ªgroupä¸€å®šå«æœ‰å®Œæ•´çš„meta data
 	if (test_root(group_block, 3) || (test_root(group_block, 5)) ||
 	    test_root(group_block, 7))
 		return 1;
@@ -49,7 +49,7 @@ int ext2fs_bg_has_super(ext2_filsys fs, int group_block)
 	return 0;
 }
 
-//·µ»Øfs³ıÁËmeta dataÍâ,»¹ÄÜÊ¹ÓÃµÄblock¸öÊı
+//è¿”å›fsé™¤äº†meta dataå¤–,è¿˜èƒ½ä½¿ç”¨çš„blockä¸ªæ•°
 int ext2fs_super_and_bgd_loc(ext2_filsys fs, 
 			     dgrp_t group,
 			     blk_t *ret_super_blk,
@@ -58,18 +58,18 @@ int ext2fs_super_and_bgd_loc(ext2_filsys fs,
 			     int *ret_meta_bg)
 {
 	/* 
-	 * group_block:	»ñÈ¡µÚ"group"¸ögroupµÄµÚÒ»¸öblockµÄÎ»ÖÃ
-     * old_desc_blk:ÓÃÓÚ¼ÇÂ¼group desc¿ªÊ¼µÄÎ»ÖÃ
-     * new_desc_blk:¿ªÆôMETA_BGºó,gdtµÄÎ»ÖÃ
+	 * group_block:	è·å–ç¬¬"group"ä¸ªgroupçš„ç¬¬ä¸€ä¸ªblockçš„ä½ç½®
+     * old_desc_blk:ç”¨äºè®°å½•group descå¼€å§‹çš„ä½ç½®
+     * new_desc_blk:å¼€å¯META_BGå,gdtçš„ä½ç½®
 	 */
 	blk_t	group_block, super_blk = 0, old_desc_blk = 0, new_desc_blk = 0;
     /*
-     * meta_bg:¼ÇÂ¼µ±Ç°ÕıÔÚ´¦Àímeta groupµÄÏÂ±ê
-     * meta_bg_size:Ò»¸öblockÖĞÄÜ¹»ÈİÄÉext2_group_descµÄÊıÁ¿
+     * meta_bg:è®°å½•å½“å‰æ­£åœ¨å¤„ç†meta groupçš„ä¸‹æ ‡
+     * meta_bg_size:ä¸€ä¸ªblockä¸­èƒ½å¤Ÿå®¹çº³ext2_group_descçš„æ•°é‡
     */
 	unsigned int meta_bg, meta_bg_size;
 	int	numblocks, has_super;
-	//×éÃèÊö·û¼°±£ÁôµÄ×éÃèÊö·ûÕ¼ÓÃµÄblockÊıÁ¿
+	//ç»„æè¿°ç¬¦åŠä¿ç•™çš„ç»„æè¿°ç¬¦å ç”¨çš„blockæ•°é‡
 	int	old_desc_blocks;
 
 	group_block = fs->super->s_first_data_block +
@@ -82,18 +82,18 @@ int ext2fs_super_and_bgd_loc(ext2_filsys fs,
 			fs->desc_blocks + fs->super->s_reserved_gdt_blocks;
 
 	if (group == fs->group_desc_count-1) {
-		//fsÖĞµÄ×îºóÒ»¸ögroup
+		//fsä¸­çš„æœ€åä¸€ä¸ªgroup
 		numblocks = (fs->super->s_blocks_count -
 			     fs->super->s_first_data_block) %
 			fs->super->s_blocks_per_group;
 		if (!numblocks)
 			/*
-			 * Èç¹ûnumblocks²»Îª0,±íÊ¾×îºóÒ»¸ögroupµÄblock²»×ãÒ»¸ös_blocks_per_group.
-			 * Èç¹ûnumblocksÎª0,±íÊ¾ËùÓĞµÄgroupÖĞµÄblockÊıÁ¿ÊÇÒ»ÑùµÄ
+			 * å¦‚æœnumblocksä¸ä¸º0,è¡¨ç¤ºæœ€åä¸€ä¸ªgroupçš„blockä¸è¶³ä¸€ä¸ªs_blocks_per_group.
+			 * å¦‚æœnumblocksä¸º0,è¡¨ç¤ºæ‰€æœ‰çš„groupä¸­çš„blockæ•°é‡æ˜¯ä¸€æ ·çš„
 			 */
 			numblocks = fs->super->s_blocks_per_group;
 	} else
-		//¶ÔÓÚ²»ÊÇfsÖĞ×îºóÒ»¸öµÄgroup,ÆäblockÊıÁ¿Ò»¶¨ÊÇs_blocks_per_group
+		//å¯¹äºä¸æ˜¯fsä¸­æœ€åä¸€ä¸ªçš„group,å…¶blockæ•°é‡ä¸€å®šæ˜¯s_blocks_per_group
 		numblocks = fs->super->s_blocks_per_group;
 
 	has_super = ext2fs_bg_has_super(fs, group);
@@ -102,38 +102,38 @@ int ext2fs_super_and_bgd_loc(ext2_filsys fs,
 		super_blk = group_block;
 		numblocks--;
 	}
-	//meta groupÖĞgroupµÄÊıÁ¿Ö»ÄÜµÈÓÚÒ»¸öblockÖĞÄÜ¹»ÈİÄÉext2_group_descµÄÊıÁ¿
+	//meta groupä¸­groupçš„æ•°é‡åªèƒ½ç­‰äºä¸€ä¸ªblockä¸­èƒ½å¤Ÿå®¹çº³ext2_group_descçš„æ•°é‡
 	meta_bg_size = (fs->blocksize / sizeof (struct ext2_group_desc));
 	meta_bg = group / meta_bg_size;
 
 	if (!(fs->super->s_feature_incompat & EXT2_FEATURE_INCOMPAT_META_BG) ||
 	    (meta_bg < fs->super->s_first_meta_bg)) {
-		//Èç¹ûfsÃ»ÓĞMETA_BG feature»òÕßmeta groupµÄÏÂ±êĞ¡ÓÚfsÖĞµÚÒ»¸ömeta groupµÄÏÂ±ê
+		//å¦‚æœfsæ²¡æœ‰META_BG featureæˆ–è€…meta groupçš„ä¸‹æ ‡å°äºfsä¸­ç¬¬ä¸€ä¸ªmeta groupçš„ä¸‹æ ‡
 		if (has_super) {
-			//Ìø¹ısb
+			//è·³è¿‡sb
 			old_desc_blk = group_block + 1;
-			//Èç¹ûÒ»¸ögroupÓĞsbµÄ»°,¿Ï¶¨Ò²ÓĞ×éÃèÊö·û±íºÍreserved group desc
+			//å¦‚æœä¸€ä¸ªgroupæœ‰sbçš„è¯,è‚¯å®šä¹Ÿæœ‰ç»„æè¿°ç¬¦è¡¨å’Œreserved group desc
 			numblocks -= old_desc_blocks;
 		}
 	} else {
-		//Èç¹ûfs¿ªÆôÁËMETA_BG feature²¢ÇÒmeta groupµÄÏÂ±ê´óÓÚµÈÓÚfsÖĞµÚÒ»¸ömeta groupµÄÏÂ±ê
+		//å¦‚æœfså¼€å¯äº†META_BG featureå¹¶ä¸”meta groupçš„ä¸‹æ ‡å¤§äºç­‰äºfsä¸­ç¬¬ä¸€ä¸ªmeta groupçš„ä¸‹æ ‡
 		if (((group % meta_bg_size) == 0) ||
 		    ((group % meta_bg_size) == 1) ||
 		    ((group % meta_bg_size) == (meta_bg_size-1))) {
-			//Ò»¸ömeta groupÖĞÖ»ÓĞÔÚmeta groupÖĞµÄµÚ0,1¼°×îºóÒ»¸ögroup²Å»áÓĞgroup descriptor
+			//ä¸€ä¸ªmeta groupä¸­åªæœ‰åœ¨meta groupä¸­çš„ç¬¬0,1åŠæœ€åä¸€ä¸ªgroupæ‰ä¼šæœ‰group descriptor
 			if (has_super)
 				has_super = 1;
 			new_desc_blk = group_block + has_super;
 			/* 
-			 * Èç¹û¿ªÆôÁËMETA_BG,²¢ÇÒÔÚmeta groupÖĞµÄµÚ0,1¼°×îºóÒ»¸ögroup,ÔÚsbºó½ÓµÄ¾Í²»ÊÇ
-			 * ´æÓĞ×éÃèÊö·ûµÄblockÁË,¶øÊÇÒ»¸ö´æÓĞµ±Ç°meta groupÖĞËùÓĞgroup descriptorµÄ
-			 * Ò»¸öblock,ÔÚÕâ¸öblockºó½ÓµÄ¾ÍÊÇblock bitmap,inode bitmap...
+			 * å¦‚æœå¼€å¯äº†META_BG,å¹¶ä¸”åœ¨meta groupä¸­çš„ç¬¬0,1åŠæœ€åä¸€ä¸ªgroup,åœ¨sbåæ¥çš„å°±ä¸æ˜¯
+			 * å­˜æœ‰ç»„æè¿°ç¬¦çš„blockäº†,è€Œæ˜¯ä¸€ä¸ªå­˜æœ‰å½“å‰meta groupä¸­æ‰€æœ‰group descriptorçš„
+			 * ä¸€ä¸ªblock,åœ¨è¿™ä¸ªblockåæ¥çš„å°±æ˜¯block bitmap,inode bitmap...
 			 */
 			numblocks--;
 		}
 	}
 
-	//Ò»¸ögroupÖĞÓĞ2¸öbitmap
+	//ä¸€ä¸ªgroupä¸­æœ‰2ä¸ªbitmap
 	numblocks -= 2 + fs->inode_blocks_per_group;
 
 	if (ret_super_blk)
@@ -176,13 +176,17 @@ static errcode_t write_primary_superblock(ext2_filsys fs,
 	old_super = (__u16 *) fs->orig_super;
 	new_super = (__u16 *) super;
 
+    //åªå†™å…¥å·®å¼‚éƒ¨åˆ†
 	for (check_idx = 0; check_idx < SUPERBLOCK_SIZE/2; check_idx++) {
 		if (old_super[check_idx] == new_super[check_idx])
+            //fsä¸­orig_superä¸­æ•°æ®å’Œå‚æ•°superç›¸åŒ
 			continue;
+        //fsä¸­orig_superä¸­æ•°æ®å’Œå‚æ•°superä¸ç›¸åŒ,æ¥ä¸‹æ¥å°±è¦æŸ¥çœ‹è¿ç»­å¤šå°‘ä¸ªå…ƒç´ ä¸åŒ
 		write_idx = check_idx;
 		for (check_idx++; check_idx < SUPERBLOCK_SIZE/2; check_idx++)
 			if (old_super[check_idx] == new_super[check_idx])
 				break;
+        //è®¡ç®—å­—èŠ‚æ•°
 		size = 2 * (check_idx - write_idx);
 #if 0
 		printf("Writing %d bytes starting at %d\n",
@@ -194,6 +198,7 @@ static errcode_t write_primary_superblock(ext2_filsys fs,
 		if (retval)
 			return retval;
 	}
+    //ä¿å­˜æ–°çš„super block
 	memcpy(fs->orig_super, super, SUPERBLOCK_SIZE);
 	return 0;
 }
@@ -288,7 +293,7 @@ errcode_t ext2fs_flush(ext2_filsys fs)
 	 * already been backed up earlier, and will be restored after
 	 * we write out the backup superblocks.)
 	 */
-    //½«±¸·İµÄsbµÄfs->super±ê¼Ç³ÉÎŞĞ§×´Ì¬
+    //å°†å¤‡ä»½çš„sbçš„fs->superæ ‡è®°æˆæ— æ•ˆçŠ¶æ€
 	fs->super->s_state &= ~EXT2_VALID_FS;
 #ifdef EXT2FS_ENABLE_SWAPFS
 	if (fs->flags & EXT2_FLAG_SWAP_BYTES) {
@@ -324,25 +329,25 @@ errcode_t ext2fs_flush(ext2_filsys fs)
 					 &new_desc_blk, &meta_bg);
 
 		if (!(fs->flags & EXT2_FLAG_MASTER_SB_ONLY) &&i && super_blk) {
-            //Èç¹ûÃ»ÓĞÖÃÎ»EXT2_FLAG_MASTER_SB_ONLY,¶øÇÒµ±Ç°²»ÊÇµÚ0×é,²¢ÇÒsb²»ÔÚblock 0µÄÎ»ÖÃ
+            //å¦‚æœæ²¡æœ‰ç½®ä½EXT2_FLAG_MASTER_SB_ONLY,è€Œä¸”å½“å‰ä¸æ˜¯ç¬¬0ç»„,å¹¶ä¸”sbä¸åœ¨block 0çš„ä½ç½®
 			retval = write_backup_super(fs, i, super_blk,
 						    super_shadow);
 			if (retval)
 				goto errout;
 		}
 		if (fs->flags & EXT2_FLAG_SUPER_ONLY)
-            //Ö»²Ù×÷sb,²»²Ù×÷group descriptor
+            //åªæ“ä½œsb,ä¸æ“ä½œgroup descriptor
 			continue;
 		if ((old_desc_blk) && 
 		    (!(fs->flags & EXT2_FLAG_MASTER_SB_ONLY) || (i == 0))) {
-            //Èç¹ûdesc_blk²»ÔÚblock 0,Ã»ÓĞÖÃÎ»EXT2_FLAG_MASTER_SB_ONLY,²¢ÇÒ²»ÊÇµÚ0×é
+            //å¦‚æœdesc_blkä¸åœ¨block 0,æ²¡æœ‰ç½®ä½EXT2_FLAG_MASTER_SB_ONLY,å¹¶ä¸”ä¸æ˜¯ç¬¬0ç»„
 			retval = io_channel_write_blk(fs->io,
 			      old_desc_blk, old_desc_blocks, group_ptr);
 			if (retval)
 				goto errout;
 		}
 		if (new_desc_blk) {
-            //meta groupÌØĞÔÖĞ±£´æÓĞgroup descµÄgroup
+            //meta groupç‰¹æ€§ä¸­ä¿å­˜æœ‰group descçš„group
 			retval = io_channel_write_blk(fs->io, new_desc_blk,
 				1, group_ptr + (meta_bg*fs->blocksize));
 			if (retval)
@@ -357,7 +362,7 @@ errcode_t ext2fs_flush(ext2_filsys fs)
 	 * drag in the bitmaps.c code.
 	 */
 	if (fs->write_bitmaps) {
-        //Ğ´Èëbitmap
+        //å†™å…¥bitmap
 		retval = fs->write_bitmaps(fs);
 		if (retval)
 			goto errout;
@@ -373,7 +378,7 @@ write_primary_superblock_only:
 	 */
 
 	fs->super->s_block_group_nr = 0;
-    //Ğ´primary super blockµÄÊ±ºòÊ¹ÓÃ½øÈëextfs2_flushÊ±µÄstate
+    //å†™primary super blockçš„æ—¶å€™ä½¿ç”¨è¿›å…¥extfs2_flushæ—¶çš„state
 	fs->super->s_state = fs_state;
 #ifdef EXT2FS_ENABLE_SWAPFS
 	if (fs->flags & EXT2_FLAG_SWAP_BYTES) {
@@ -387,7 +392,7 @@ write_primary_superblock_only:
 	if (retval)
 		goto errout;
 
-    //Çå³ıdirty±êÖ¾
+    //æ¸…é™¤dirtyæ ‡å¿—
 	fs->flags &= ~EXT2_FLAG_DIRTY;
     
 	retval = io_channel_flush(fs->io);
